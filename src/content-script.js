@@ -12,6 +12,7 @@ class OpenMemoryIntegration {
       this.lastProcessedMessage = '';
       this.lastDetectedContent = null;
       this.pendingMemories = null;
+      this.pendingQuery = null;
       this.conversationStarted = false;
       this.memoryButton = null;
       this.memoryOverlay = null;
@@ -390,10 +391,18 @@ class OpenMemoryIntegration {
     console.log('OpenMemory: Processing new content:', textContent.substring(0, 100) + '...');
     console.log('OpenMemory: Content length:', textContent.length);
 
-    // Store detected content for manual saving later, but don't auto-save
+    // Check if this is an AI response and enhance it with memory if we have a pending query
     if (this.looksLikeAIResponse(textContent)) {
-      console.log('OpenMemory: Detected AI response, ready for manual saving');
+      console.log('OpenMemory: Detected AI response, checking for memory enhancement');
       this.lastDetectedContent = textContent;
+      
+      // Check if we have a pending query with memories to enhance the response
+      if (this.pendingQuery && (Date.now() - this.pendingQuery.timestamp < 30000)) { // 30 second window
+        console.log('OpenMemory: Enhancing AI response with memory context');
+        this.enhanceAIResponse(content, this.pendingQuery);
+        this.pendingQuery = null; // Clear after use
+      }
+      
       // Update button to indicate new content is available
       this.updateMemoryButton();
     } else {
@@ -935,20 +944,20 @@ class OpenMemoryIntegration {
           if (currentContent.length > 5 && currentContent !== lastContent && !autoSuggestionsShown && this.looksLikeQuestion(currentContent)) {
             console.log('OpenMemory: Preparing memories for potential injection:', currentContent.substring(0, 50) + '...');
             
-            // Get relevant memories and show them in a clean way
-            const relevantMemories = await window.memoryEngine.getRelevantMemories(currentContent, 3);
+            // Store the user query for potential response enhancement
+            const relevantMemories = await window.memoryEngine.getRelevantMemories(currentContent, 5);
             if (relevantMemories.length > 0) {
-              console.log('OpenMemory: Found relevant memories, showing smart prompt');
+              console.log('OpenMemory: Found relevant memories, preparing for response enhancement');
               
-              // Store for potential use
-              this.pendingMemories = {
-                inputElement: target,
+              // Store the query and memories for response enhancement
+              this.pendingQuery = {
                 userQuery: currentContent,
-                memories: relevantMemories
+                memories: relevantMemories,
+                timestamp: Date.now()
               };
               
-              // Show smart memory prompt
-              this.showSmartMemoryPrompt(target, relevantMemories, currentContent);
+              // Show subtle indicator
+              this.showNotification(`🧠 ${relevantMemories.length} relevant memories found`, 'info', 2000);
             }
             
             autoSuggestionsShown = true;
@@ -1204,6 +1213,89 @@ class OpenMemoryIntegration {
   sendWithoutMemories(inputElement) {
     // Just submit without any memory context
     this.submitNormally(inputElement);
+  }
+
+  async enhanceAIResponse(responseElement, queryData) {
+    try {
+      const { userQuery, memories } = queryData;
+      
+      // Get the current AI response text
+      const currentResponse = responseElement.textContent || responseElement.innerText || '';
+      
+      // Check if the response indicates the AI doesn't know something
+      const unknownIndicators = [
+        /i don't know/i,
+        /i don't have access/i,
+        /i don't have information/i,
+        /i cannot/i,
+        /i am not aware/i,
+        /i don't recall/i,
+        /no information about/i,
+        /don't have data/i,
+        /not in my knowledge/i
+      ];
+      
+      const indicatesUnknown = unknownIndicators.some(pattern => pattern.test(currentResponse));
+      
+      if (indicatesUnknown || currentResponse.length < 100) {
+        console.log('OpenMemory: AI response indicates lack of knowledge, enhancing with memories');
+        
+        // Create enhanced response with memory context
+        const memoryContext = this.formatMemoriesForResponse(memories);
+        const enhancedResponse = this.createEnhancedResponse(userQuery, currentResponse, memoryContext);
+        
+        // Replace the AI response content
+        this.replaceAIResponse(responseElement, enhancedResponse);
+        
+        this.showNotification(`🧠 Enhanced response with ${memories.length} memories`, 'success', 3000);
+      }
+      
+    } catch (error) {
+      console.error('OpenMemory: Error enhancing AI response:', error);
+    }
+  }
+
+  formatMemoriesForResponse(memories) {
+    return memories.map(memory => {
+      try {
+        const parsed = JSON.parse(memory.content);
+        if (parsed.user && parsed.ai_output) {
+          return parsed.ai_output;
+        }
+      } catch (e) {
+        // Not JSON, return raw content
+      }
+      return memory.content;
+    }).join(' ');
+  }
+
+  createEnhancedResponse(userQuery, originalResponse, memoryContext) {
+    // Create a natural response that incorporates the memory
+    const enhancedResponse = `Based on our previous conversations, I can help with that! ${memoryContext}
+    
+${originalResponse.includes('don\'t know') || originalResponse.includes('don\'t have') ? '' : originalResponse}`;
+    
+    return enhancedResponse;
+  }
+
+  replaceAIResponse(responseElement, newContent) {
+    try {
+      // Different platforms have different structures
+      if (responseElement.textContent !== undefined) {
+        responseElement.textContent = newContent;
+      } else if (responseElement.innerText !== undefined) {
+        responseElement.innerText = newContent;
+      } else if (responseElement.innerHTML !== undefined) {
+        responseElement.innerHTML = newContent.replace(/\n/g, '<br>');
+      }
+      
+      // Trigger any necessary events
+      const event = new Event('input', { bubbles: true });
+      responseElement.dispatchEvent(event);
+      
+    } catch (error) {
+      console.error('OpenMemory: Error replacing AI response:', error);
+    }
   }
 
   isInputField(element) {
