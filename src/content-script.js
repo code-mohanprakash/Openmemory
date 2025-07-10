@@ -926,19 +926,19 @@ class OpenMemoryIntegration {
       if (this.isInputField(target) && target === currentInput) {
         clearTimeout(typingTimer);
         
-        // Wait for user to pause typing (1.5 seconds)
+        // Wait for user to pause typing (1 second for faster response)
         typingTimer = setTimeout(async () => {
           const currentContent = this.getInputValue(target);
           
-          // Only check if content is substantial and changed
-          if (currentContent.length > 10 && currentContent !== lastContent && !autoSuggestionsShown) {
+          // Only check if content is substantial and changed, and looks like a question
+          if (currentContent.length > 5 && currentContent !== lastContent && !autoSuggestionsShown && this.looksLikeQuestion(currentContent)) {
             console.log('OpenMemory: Analyzing user input for relevant memories:', currentContent.substring(0, 50) + '...');
             await this.analyzeAndSuggestMemories(target, currentContent);
             autoSuggestionsShown = true;
           }
           
           lastContent = currentContent;
-        }, 1500); // 1.5 second delay after user stops typing
+        }, 1000); // 1 second delay after user stops typing for faster response
       }
     });
     
@@ -993,21 +993,90 @@ class OpenMemoryIntegration {
   async analyzeAndSuggestMemories(inputElement, userQuery) {
     try {
       // Get relevant memories for the user's query
-      const relevantMemories = await window.memoryEngine.getRelevantMemories(userQuery, 3);
+      const relevantMemories = await window.memoryEngine.getRelevantMemories(userQuery, 5);
       
       if (relevantMemories.length === 0) {
         console.log('OpenMemory: No relevant memories found for query');
         return;
       }
       
-      console.log('OpenMemory: Found', relevantMemories.length, 'relevant memories for auto-suggestion');
+      console.log('OpenMemory: Found', relevantMemories.length, 'relevant memories for auto-injection');
       
-      // Show auto-suggestion notification
-      this.showAutoSuggestionNotification(relevantMemories, inputElement, userQuery);
+      // Automatically inject relevant memories into the input
+      await this.autoInjectRelevantMemories(inputElement, userQuery, relevantMemories);
       
     } catch (error) {
       console.error('OpenMemory: Error analyzing user input for memories:', error);
     }
+  }
+
+  async autoInjectRelevantMemories(inputElement, userQuery, memories) {
+    try {
+      // Format memories for injection
+      const memoryContext = this.formatMemoriesForAutoInjection(memories);
+      
+      // Get current input value
+      const currentValue = this.getInputValue(inputElement);
+      
+      // Create enhanced query with memory context
+      const enhancedQuery = `${currentValue}\n\n[Context from my previous conversations: ${memoryContext}]`;
+      
+      // Inject the enhanced query
+      this.setInputValue(inputElement, enhancedQuery);
+      
+      // Show notification about auto-injection
+      this.showNotification(`🧠 Auto-injected ${memories.length} relevant memories`, 'success', 3000);
+      
+      console.log('OpenMemory: Auto-injected memories into input field');
+      
+    } catch (error) {
+      console.error('OpenMemory: Error auto-injecting memories:', error);
+    }
+  }
+
+  formatMemoriesForAutoInjection(memories) {
+    return memories.map(memory => {
+      try {
+        // Check if it's a structured conversation memory
+        const parsed = JSON.parse(memory.content);
+        if (parsed.user && parsed.ai_output) {
+          return `Q: ${parsed.user} A: ${parsed.ai_output}`;
+        }
+      } catch (e) {
+        // Not JSON, treat as regular memory
+      }
+      
+      // Regular memory format
+      const preview = memory.content.length > 100 
+        ? memory.content.substring(0, 100) + '...' 
+        : memory.content;
+      return preview;
+    }).join('; ');
+  }
+
+  setInputValue(element, value) {
+    if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+      element.value = value;
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+    } else if (element.contentEditable === 'true') {
+      element.textContent = value;
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  looksLikeQuestion(text) {
+    const lowerText = text.toLowerCase().trim();
+    
+    // Question words and patterns
+    const questionPatterns = [
+      /^(what|who|where|when|why|how|which|whose|whom)\b/,
+      /\?$/,
+      /^(do|does|did|can|could|will|would|should|is|are|was|were|have|has|had)\s/,
+      /\b(tell me|show me|explain|describe|what about|how about|do you know|remember|recall)\b/,
+      /\b(like|prefer|favorite|favourite|best|worst|recommend)\b/
+    ];
+    
+    return questionPatterns.some(pattern => pattern.test(lowerText));
   }
 
   showAutoSuggestionNotification(memories, inputElement, userQuery) {
