@@ -104,6 +104,12 @@ class OpenMemoryIntegration {
       } catch (error) {
         console.error('OpenMemory: Failed to setup keyboard shortcuts:', error);
       }
+
+      try {
+        this.setupAutoMemoryDetection();
+      } catch (error) {
+        console.error('OpenMemory: Failed to setup auto memory detection:', error);
+      }
       
       // Auto-inject memories on new conversation
       try {
@@ -753,6 +759,271 @@ class OpenMemoryIntegration {
     });
   }
 
+  setupAutoMemoryDetection() {
+    console.log('OpenMemory: Setting up automatic memory detection...');
+    
+    // Track current input and its content
+    let currentInput = null;
+    let lastContent = '';
+    let typingTimer;
+    let autoSuggestionsShown = false;
+    
+    // Monitor input fields for typing
+    document.addEventListener('focusin', (e) => {
+      const target = e.target;
+      if (this.isInputField(target)) {
+        currentInput = target;
+        lastContent = this.getInputValue(target);
+        autoSuggestionsShown = false;
+        console.log('OpenMemory: Monitoring input field for auto-suggestions');
+      }
+    });
+    
+    // Monitor typing and detect when user pauses
+    document.addEventListener('input', (e) => {
+      const target = e.target;
+      if (this.isInputField(target) && target === currentInput) {
+        clearTimeout(typingTimer);
+        
+        // Wait for user to pause typing (1.5 seconds)
+        typingTimer = setTimeout(async () => {
+          const currentContent = this.getInputValue(target);
+          
+          // Only check if content is substantial and changed
+          if (currentContent.length > 10 && currentContent !== lastContent && !autoSuggestionsShown) {
+            console.log('OpenMemory: Analyzing user input for relevant memories:', currentContent.substring(0, 50) + '...');
+            await this.analyzeAndSuggestMemories(target, currentContent);
+            autoSuggestionsShown = true;
+          }
+          
+          lastContent = currentContent;
+        }, 1500); // 1.5 second delay after user stops typing
+      }
+    });
+    
+    // Reset when user focuses away
+    document.addEventListener('focusout', (e) => {
+      clearTimeout(typingTimer);
+      if (currentInput === e.target) {
+        currentInput = null;
+        autoSuggestionsShown = false;
+      }
+    });
+  }
+
+  isInputField(element) {
+    if (!element) return false;
+    
+    // Check for common input fields
+    if (element.tagName === 'TEXTAREA') return true;
+    if (element.tagName === 'INPUT' && ['text', 'search'].includes(element.type)) return true;
+    if (element.contentEditable === 'true') return true;
+    
+    // Platform-specific checks
+    const platformSelectors = {
+      'chatgpt': ['[data-testid="textbox"]', '#prompt-textarea'],
+      'claude': ['[contenteditable="true"]'],
+      'gemini': ['[contenteditable="true"]', '.ql-editor'],
+      'perplexity': ['textarea', '[contenteditable="true"]'],
+      'zendesk': ['[data-test-id="omnichannel-text-input"]', '.editor'],
+      'grok': ['textarea', '[contenteditable="true"]']
+    };
+    
+    const selectors = platformSelectors[this.platform] || [];
+    return selectors.some(selector => {
+      try {
+        return element.matches(selector);
+      } catch (e) {
+        return false;
+      }
+    });
+  }
+
+  getInputValue(element) {
+    if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+      return element.value || '';
+    }
+    if (element.contentEditable === 'true') {
+      return element.textContent || '';
+    }
+    return '';
+  }
+
+  async analyzeAndSuggestMemories(inputElement, userQuery) {
+    try {
+      // Get relevant memories for the user's query
+      const relevantMemories = await window.memoryEngine.getRelevantMemories(userQuery, 3);
+      
+      if (relevantMemories.length === 0) {
+        console.log('OpenMemory: No relevant memories found for query');
+        return;
+      }
+      
+      console.log('OpenMemory: Found', relevantMemories.length, 'relevant memories for auto-suggestion');
+      
+      // Show auto-suggestion notification
+      this.showAutoSuggestionNotification(relevantMemories, inputElement, userQuery);
+      
+    } catch (error) {
+      console.error('OpenMemory: Error analyzing user input for memories:', error);
+    }
+  }
+
+  showAutoSuggestionNotification(memories, inputElement, userQuery) {
+    // Remove any existing auto-suggestion
+    const existingSuggestion = document.querySelector('.openmemory-auto-suggestion');
+    if (existingSuggestion) existingSuggestion.remove();
+    
+    // Create auto-suggestion UI
+    const suggestion = document.createElement('div');
+    suggestion.className = 'openmemory-auto-suggestion';
+    suggestion.style.cssText = `
+      position: fixed;
+      top: 200px;
+      right: 20px;
+      width: 380px;
+      background: rgba(59, 130, 246, 0.95);
+      backdrop-filter: blur(15px);
+      border: 1px solid rgba(147, 197, 253, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
+      z-index: 999999;
+      animation: slideInRight 0.4s ease;
+      max-height: 400px;
+      overflow-y: auto;
+    `;
+    
+    suggestion.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+        <div style="background: rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 8px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;">
+          🧠
+        </div>
+        <div>
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 2px;">Smart Memory Assistant</div>
+          <div style="font-size: 11px; opacity: 0.8;">Found ${memories.length} relevant memories from your past conversations</div>
+        </div>
+        <button class="auto-suggestion-close" style="background: rgba(255, 255, 255, 0.2); border: none; color: white; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-left: auto;">×</button>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 8px;">💡 <strong>Suggestion:</strong> These memories might be helpful for your question:</div>
+        <div style="background: rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 8px; font-size: 11px; font-style: italic;">"${userQuery.substring(0, 80)}${userQuery.length > 80 ? '...' : ''}"</div>
+      </div>
+      
+      <div class="memory-previews" style="margin-bottom: 16px;">
+        ${memories.map((memory, index) => `
+          <div style="background: rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px; margin-bottom: 8px; font-size: 11px; line-height: 1.4;">
+            <div style="font-weight: 500; margin-bottom: 4px; color: #e0e7ff;">${memory.category || 'General'} • ${this.formatDate(memory.timestamp)}</div>
+            <div style="opacity: 0.9;">${memory.summary || memory.content.substring(0, 100)}${memory.content.length > 100 ? '...' : ''}</div>
+          </div>
+        `).join('')}
+      </div>
+      
+      <div style="display: flex; gap: 8px;">
+        <button class="auto-inject-btn" style="flex: 1; background: rgba(34, 197, 94, 0.9); border: none; color: white; border-radius: 8px; padding: 10px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+          ✨ Auto-Include Memories
+        </button>
+        <button class="maybe-later-btn" style="background: rgba(255, 255, 255, 0.2); border: none; color: white; border-radius: 8px; padding: 10px 12px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s ease;">
+          Maybe Later
+        </button>
+      </div>
+      
+      <div style="margin-top: 12px; font-size: 9px; opacity: 0.7; text-align: center;">
+        💡 Tip: Disable auto-suggestions in settings if you prefer manual control
+      </div>
+    `;
+    
+    // Add event listeners
+    const closeBtn = suggestion.querySelector('.auto-suggestion-close');
+    const autoInjectBtn = suggestion.querySelector('.auto-inject-btn');
+    const maybeLaterBtn = suggestion.querySelector('.maybe-later-btn');
+    
+    closeBtn.addEventListener('click', () => suggestion.remove());
+    maybeLaterBtn.addEventListener('click', () => suggestion.remove());
+    
+    autoInjectBtn.addEventListener('click', async () => {
+      // Add smooth loading state
+      autoInjectBtn.innerHTML = '⏳ Including memories...';
+      autoInjectBtn.disabled = true;
+      
+      // Auto-inject the memories
+      await this.autoInjectMemories(memories, inputElement, userQuery);
+      
+      // Show success and remove
+      autoInjectBtn.innerHTML = '✅ Memories included!';
+      setTimeout(() => suggestion.remove(), 2000);
+    });
+    
+    // Add hover effects
+    autoInjectBtn.addEventListener('mouseenter', () => {
+      autoInjectBtn.style.background = 'rgba(34, 197, 94, 1)';
+      autoInjectBtn.style.transform = 'translateY(-1px)';
+    });
+    autoInjectBtn.addEventListener('mouseleave', () => {
+      autoInjectBtn.style.background = 'rgba(34, 197, 94, 0.9)';
+      autoInjectBtn.style.transform = 'translateY(0)';
+    });
+    
+    document.body.appendChild(suggestion);
+    
+    // Auto-remove after 15 seconds if no interaction
+    setTimeout(() => {
+      if (document.contains(suggestion)) {
+        suggestion.style.animation = 'fadeOut 0.3s ease forwards';
+        setTimeout(() => suggestion.remove(), 300);
+      }
+    }, 15000);
+  }
+
+  async autoInjectMemories(memories, inputElement, userQuery) {
+    try {
+      // Create context-aware memory injection
+      const memoryContext = memories.map(memory => 
+        `[From ${memory.source || 'previous conversation'} - ${this.formatDate(memory.timestamp)}]: ${memory.content}`
+      ).join('\n\n');
+      
+      const contextualPrompt = `Context from my previous conversations that might be relevant:
+
+${memoryContext}
+
+Current question: ${userQuery}`;
+      
+      // Inject into input field
+      const currentValue = this.getInputValue(inputElement);
+      const newValue = currentValue + '\n\n' + contextualPrompt;
+      
+      this.setInputValue(inputElement, newValue);
+      
+      // Show success notification
+      this.showNotification(`✨ Auto-included ${memories.length} relevant memories from your past conversations`, 'success', 4000);
+      
+      console.log('OpenMemory: Auto-injected memories successfully');
+      
+    } catch (error) {
+      console.error('OpenMemory: Error auto-injecting memories:', error);
+      this.showNotification('❌ Failed to auto-include memories', 'error');
+    }
+  }
+
+  setInputValue(element, value) {
+    if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+      element.value = value;
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+    } else if (element.contentEditable === 'true') {
+      element.textContent = value;
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    
+    // Focus and position cursor at end
+    element.focus();
+    if (element.setSelectionRange) {
+      element.setSelectionRange(value.length, value.length);
+    }
+  }
+
   async injectMemories() {
     const input = this.getCurrentInput();
     if (!input) {
@@ -1159,6 +1430,7 @@ class OpenMemoryIntegration {
   }
 
   formatDate(timestamp) {
+    if (!timestamp) return 'Unknown';
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now - date;
