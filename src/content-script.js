@@ -10,6 +10,7 @@ class OpenMemoryIntegration {
       this.platform = this.detectPlatform();
       this.isEnabled = true;
       this.lastProcessedMessage = '';
+      this.lastDetectedContent = null;
       this.conversationStarted = false;
       this.memoryButton = null;
       this.memoryOverlay = null;
@@ -388,15 +389,12 @@ class OpenMemoryIntegration {
     console.log('OpenMemory: Processing new content:', textContent.substring(0, 100) + '...');
     console.log('OpenMemory: Content length:', textContent.length);
 
-    // Check if this looks like an AI response (longer, informative content)
+    // Store detected content for manual saving later, but don't auto-save
     if (this.looksLikeAIResponse(textContent)) {
-      console.log('OpenMemory: Detected AI response, saving memory...');
-      this.isProcessing = true;
-      try {
-        await this.extractAndSaveMemories(textContent);
-      } finally {
-        this.isProcessing = false;
-      }
+      console.log('OpenMemory: Detected AI response, ready for manual saving');
+      this.lastDetectedContent = textContent;
+      // Update button to indicate new content is available
+      this.updateMemoryButton();
     } else {
       console.log('OpenMemory: Content not recognized as AI response');
     }
@@ -649,40 +647,35 @@ class OpenMemoryIntegration {
 
   async manualMemoryUpdate() {
     try {
-      this.showNotification('🔍 Scanning for new memories...', 'info', 2000);
+      this.showNotification('🔍 Saving memories...', 'info', 2000);
       this.memoryButton.disabled = true;
       const originalText = this.memoryButton.innerHTML;
-      this.memoryButton.innerHTML = '⏳ Scanning...';
-      
-      // Get all messages in the conversation
-      const messages = this.getAllMessages();
-      console.log('OpenMemory: Found', messages.length, 'messages for manual update');
+      this.memoryButton.innerHTML = '⏳ Saving...';
       
       let newMemoriesCount = 0;
-      let processedCount = 0;
+      
+      // First priority: Save the last detected content if available
+      if (this.lastDetectedContent && this.lastDetectedContent.length > 50) {
+        console.log('OpenMemory: Saving last detected content:', this.lastDetectedContent.substring(0, 100) + '...');
+        await this.extractAndSaveMemories(this.lastDetectedContent);
+        this.lastDetectedContent = null; // Clear after saving
+        newMemoriesCount++;
+      }
+      
+      // Also scan for any other unprocessed messages
+      const messages = this.getAllMessages();
+      console.log('OpenMemory: Found', messages.length, 'messages for manual update');
       
       // Process all AI messages that we haven't processed yet
       for (const message of messages) {
         if (message.isAI && message.content && !this.processedMessages.has(message.id)) {
-          console.log('OpenMemory: Processing message:', message.content.substring(0, 100) + '...');
+          console.log('OpenMemory: Processing unprocessed message:', message.content.substring(0, 100) + '...');
           
           if (this.looksLikeAIResponse(message.content)) {
             await this.extractAndSaveMemories(message.content);
             this.processedMessages.add(message.id);
             newMemoriesCount++;
           }
-          processedCount++;
-        }
-      }
-      
-      // Also try to capture any very recent content that might not be in messages yet
-      const recentContent = this.getRecentConversationContent();
-      if (recentContent && recentContent.length > 50) {
-        console.log('OpenMemory: Processing recent content:', recentContent.substring(0, 100) + '...');
-        
-        if (this.looksLikeAIResponse(recentContent)) {
-          await this.extractAndSaveMemories(recentContent);
-          newMemoriesCount++;
         }
       }
       
@@ -690,14 +683,14 @@ class OpenMemoryIntegration {
       this.updateMemoryButton();
       
       if (newMemoriesCount > 0) {
-        this.showNotification(`✅ Updated! Saved ${newMemoriesCount} new memories`, 'success', 3000);
+        this.showNotification(`✅ Saved ${newMemoriesCount} new memories!`, 'success', 3000);
       } else {
         this.showNotification('✅ All memories are up to date!', 'info', 2000);
       }
       
     } catch (error) {
       console.error('OpenMemory: Manual update failed:', error);
-      this.showNotification('❌ Failed to update memories', 'error');
+      this.showNotification('❌ Failed to save memories', 'error');
     } finally {
       this.memoryButton.disabled = false;
       this.updateMemoryButton(); // This will restore the proper text with count
