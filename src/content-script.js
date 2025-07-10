@@ -935,17 +935,20 @@ class OpenMemoryIntegration {
           if (currentContent.length > 5 && currentContent !== lastContent && !autoSuggestionsShown && this.looksLikeQuestion(currentContent)) {
             console.log('OpenMemory: Preparing memories for potential injection:', currentContent.substring(0, 50) + '...');
             
-            // Store the relevant memories for this input
-            const relevantMemories = await window.memoryEngine.getRelevantMemories(currentContent, 5);
+            // Get relevant memories and show them in a clean way
+            const relevantMemories = await window.memoryEngine.getRelevantMemories(currentContent, 3);
             if (relevantMemories.length > 0) {
+              console.log('OpenMemory: Found relevant memories, showing smart prompt');
+              
+              // Store for potential use
               this.pendingMemories = {
                 inputElement: target,
                 userQuery: currentContent,
                 memories: relevantMemories
               };
               
-              // Show subtle indicator that memories are ready
-              this.showNotification(`🧠 ${relevantMemories.length} relevant memories ready`, 'info', 2000);
+              // Show smart memory prompt
+              this.showSmartMemoryPrompt(target, relevantMemories, currentContent);
             }
             
             autoSuggestionsShown = true;
@@ -985,11 +988,47 @@ class OpenMemoryIntegration {
     // Intercept submit button clicks
     document.addEventListener('click', (e) => {
       const target = e.target;
-      const isSubmitButton = target.matches('[data-testid="send-button"], button[type="submit"], .send-button, [aria-label*="Send"], [aria-label*="submit"], button[aria-label*="Send"]');
+      // More comprehensive button detection for different platforms
+      const isSubmitButton = target.matches([
+        '[data-testid="send-button"]', // ChatGPT
+        'button[type="submit"]',
+        '.send-button',
+        '[aria-label*="Send"]',
+        '[aria-label*="submit"]',
+        'button[aria-label*="Send"]',
+        'button[aria-label*="Submit"]',
+        '.submit-button',
+        '[data-send-button]',
+        'button:has(svg)', // Many platforms use SVG icons in send buttons
+        'button[class*="send"]',
+        'button[class*="submit"]'
+      ].join(', '));
+      
+      // Also check parent elements in case of nested button structures
+      let buttonElement = target;
+      if (!isSubmitButton) {
+        buttonElement = target.closest('button, [role="button"]');
+        if (buttonElement) {
+          const isParentSubmitButton = buttonElement.matches([
+            '[data-testid="send-button"]',
+            'button[type="submit"]',
+            '[aria-label*="Send"]',
+            '[aria-label*="submit"]'
+          ].join(', '));
+          if (isParentSubmitButton && this.pendingMemories) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('OpenMemory: Intercepted submit button (parent):', buttonElement);
+            this.injectMemoriesAndSubmit(this.pendingMemories.inputElement);
+            return false;
+          }
+        }
+      }
       
       if (isSubmitButton && this.pendingMemories) {
         e.preventDefault();
         e.stopPropagation();
+        console.log('OpenMemory: Intercepted submit button:', target);
         this.injectMemoriesAndSubmit(this.pendingMemories.inputElement);
         return false;
       }
@@ -1041,6 +1080,130 @@ class OpenMemoryIntegration {
     });
     
     inputElement.dispatchEvent(enterEvent);
+  }
+
+  showSmartMemoryPrompt(inputElement, memories, userQuery) {
+    // Remove any existing prompt
+    const existing = document.querySelector('.openmemory-smart-prompt');
+    if (existing) existing.remove();
+
+    // Create smart prompt overlay
+    const prompt = document.createElement('div');
+    prompt.className = 'openmemory-smart-prompt';
+    prompt.style.cssText = `
+      position: fixed;
+      top: 120px;
+      right: 20px;
+      width: 350px;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(15px);
+      border: 2px solid #3b82f6;
+      border-radius: 16px;
+      padding: 16px;
+      z-index: 999999;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      animation: slideIn 0.3s ease-out;
+    `;
+
+    prompt.innerHTML = `
+      <style>
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      </style>
+      <div style="display: flex; align-items: center; margin-bottom: 12px;">
+        <div style="font-size: 20px; margin-right: 8px;">🧠</div>
+        <div style="font-weight: 600; color: #1f2937;">Found Relevant Memories</div>
+        <button onclick="this.closest('.openmemory-smart-prompt').remove()" 
+                style="margin-left: auto; background: none; border: none; font-size: 18px; cursor: pointer; color: #6b7280;">×</button>
+      </div>
+      
+      <div style="font-size: 13px; color: #6b7280; margin-bottom: 12px;">
+        I found ${memories.length} relevant memories from your previous conversations:
+      </div>
+      
+      <div style="max-height: 120px; overflow-y: auto; margin-bottom: 12px;">
+        ${memories.map(memory => {
+          let displayText = '';
+          try {
+            const parsed = JSON.parse(memory.content);
+            if (parsed.user && parsed.ai_output) {
+              displayText = `💬 ${parsed.ai_output.substring(0, 80)}...`;
+            } else {
+              displayText = memory.content.substring(0, 80) + '...';
+            }
+          } catch (e) {
+            displayText = memory.content.substring(0, 80) + '...';
+          }
+          
+          return `
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; margin-bottom: 6px; font-size: 12px; line-height: 1.4;">
+              ${displayText}
+            </div>
+          `;
+        }).join('')}
+      </div>
+      
+      <div style="display: flex; gap: 8px;">
+        <button id="include-memories" style="flex: 1; background: #3b82f6; color: white; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 500; cursor: pointer;">
+          ✨ Include & Send
+        </button>
+        <button id="send-without" style="flex: 1; background: #f3f4f6; color: #374151; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 500; cursor: pointer;">
+          Send Without
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(prompt);
+
+    // Add event listeners
+    prompt.querySelector('#include-memories').addEventListener('click', () => {
+      this.includeMemoriesAndSend(inputElement, userQuery, memories);
+      prompt.remove();
+    });
+
+    prompt.querySelector('#send-without').addEventListener('click', () => {
+      this.sendWithoutMemories(inputElement);
+      prompt.remove();
+    });
+
+    // Auto-dismiss after 15 seconds
+    setTimeout(() => {
+      if (document.contains(prompt)) {
+        prompt.remove();
+      }
+    }, 15000);
+  }
+
+  async includeMemoriesAndSend(inputElement, userQuery, memories) {
+    try {
+      // Format memories for injection
+      const memoryContext = this.formatMemoriesForAutoInjection(memories);
+      
+      // Create enhanced query with memory context
+      const enhancedQuery = `${userQuery}\n\n[Context from my previous conversations: ${memoryContext}]`;
+      
+      // Set the enhanced query
+      this.setInputValue(inputElement, enhancedQuery);
+      
+      // Show notification
+      this.showNotification(`🧠 Added ${memories.length} memories to your question`, 'success', 2000);
+      
+      // Submit after a brief delay
+      setTimeout(() => {
+        this.submitNormally(inputElement);
+      }, 500);
+      
+    } catch (error) {
+      console.error('OpenMemory: Error including memories:', error);
+    }
+  }
+
+  sendWithoutMemories(inputElement) {
+    // Just submit without any memory context
+    this.submitNormally(inputElement);
   }
 
   isInputField(element) {
