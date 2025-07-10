@@ -654,29 +654,19 @@ class OpenMemoryIntegration {
       
       let newMemoriesCount = 0;
       
-      // First priority: Save the last detected content if available
-      if (this.lastDetectedContent && this.lastDetectedContent.length > 50) {
-        console.log('OpenMemory: Saving last detected content:', this.lastDetectedContent.substring(0, 100) + '...');
-        await this.extractAndSaveMemories(this.lastDetectedContent);
-        this.lastDetectedContent = null; // Clear after saving
+      // Check if user has selected text to save as structured memory
+      const selectedText = window.getSelection().toString().trim();
+      if (selectedText && selectedText.length > 20) {
+        console.log('OpenMemory: User selected text for memory:', selectedText.substring(0, 100) + '...');
+        await this.saveSelectedTextAsStructuredMemory(selectedText);
         newMemoriesCount++;
-      }
-      
-      // Also scan for any other unprocessed messages
-      const messages = this.getAllMessages();
-      console.log('OpenMemory: Found', messages.length, 'messages for manual update');
-      
-      // Process all AI messages that we haven't processed yet
-      for (const message of messages) {
-        if (message.isAI && message.content && !this.processedMessages.has(message.id)) {
-          console.log('OpenMemory: Processing unprocessed message:', message.content.substring(0, 100) + '...');
-          
-          if (this.looksLikeAIResponse(message.content)) {
-            await this.extractAndSaveMemories(message.content);
-            this.processedMessages.add(message.id);
-            newMemoriesCount++;
-          }
-        }
+        
+        // Clear selection after saving
+        window.getSelection().removeAllRanges();
+      } else {
+        // No selection - process conversation messages in structured format
+        await this.saveConversationAsStructuredMemories();
+        newMemoriesCount++;
       }
       
       // Update UI
@@ -740,6 +730,164 @@ class OpenMemoryIntegration {
       console.error('OpenMemory: Failed to get memory stats:', error);
       this.memoryButton.innerHTML = '🔄 Update Memory';
     });
+  }
+
+  // Save user-selected text as a structured memory
+  async saveSelectedTextAsStructuredMemory(selectedText) {
+    try {
+      // Try to determine if this is user input or AI output based on context
+      const parentElement = window.getSelection().getRangeAt(0).commonAncestorContainer.parentElement;
+      const isUserMessage = this.isUserMessage(parentElement);
+      
+      if (isUserMessage) {
+        // This is user input - try to find the corresponding AI response
+        const correspondingAI = this.findCorrespondingAIResponse(parentElement);
+        if (correspondingAI) {
+          await this.saveStructuredMemory(selectedText, correspondingAI);
+        } else {
+          // Save as user input only
+          await this.saveStructuredMemory(selectedText, null);
+        }
+      } else {
+        // This is likely AI output - try to find the corresponding user input
+        const correspondingUser = this.findCorrespondingUserInput(parentElement);
+        if (correspondingUser) {
+          await this.saveStructuredMemory(correspondingUser, selectedText);
+        } else {
+          // Save as AI output only
+          await this.saveStructuredMemory(null, selectedText);
+        }
+      }
+      
+      this.showNotification('✅ Structured memory saved!', 'success', 3000);
+    } catch (error) {
+      console.error('OpenMemory: Error saving selected text:', error);
+      this.showNotification('❌ Failed to save selected text', 'error');
+    }
+  }
+
+  // Save conversation messages as structured user-AI pairs
+  async saveConversationAsStructuredMemories() {
+    try {
+      const messages = this.getAllMessages();
+      const conversationPairs = this.extractConversationPairs(messages);
+      
+      let savedCount = 0;
+      for (const pair of conversationPairs) {
+        if (!this.processedMessages.has(pair.id)) {
+          await this.saveStructuredMemory(pair.userInput, pair.aiOutput);
+          this.processedMessages.add(pair.id);
+          savedCount++;
+        }
+      }
+      
+      if (savedCount > 0) {
+        this.showNotification(`✅ Saved ${savedCount} conversation pairs!`, 'success', 3000);
+      } else {
+        this.showNotification('✅ All conversations up to date!', 'info', 2000);
+      }
+    } catch (error) {
+      console.error('OpenMemory: Error saving conversation:', error);
+      this.showNotification('❌ Failed to save conversation', 'error');
+    }
+  }
+
+  // Save memory in structured key-value format
+  async saveStructuredMemory(userInput, aiOutput) {
+    const structuredContent = {
+      user: userInput || '[User input not captured]',
+      ai_output: aiOutput || '[AI response not captured]',
+      timestamp: Date.now(),
+      platform: this.platform
+    };
+
+    const memory = await window.memoryEngine.saveMemory(JSON.stringify(structuredContent, null, 2), {
+      type: 'structured_conversation',
+      platform: this.platform,
+      conversation_url: window.location.href,
+      structured: true,
+      userInput: userInput,
+      aiOutput: aiOutput
+    });
+
+    return memory;
+  }
+
+  // Helper functions for structured memory detection
+  isUserMessage(element) {
+    // Platform-specific detection for user messages
+    const userIndicators = {
+      'chatgpt': ['user-message', 'text-base', 'user'],
+      'claude': ['human', 'user-message'],
+      'gemini': ['user-message', 'user'],
+      'zendesk': ['user', 'customer', 'requester']
+    };
+
+    const indicators = userIndicators[this.platform] || userIndicators['chatgpt'];
+    
+    // Check element and its parents for user message indicators
+    let current = element;
+    while (current && current !== document.body) {
+      const className = current.className || '';
+      const role = current.getAttribute('data-message-author-role') || current.getAttribute('role') || '';
+      
+      if (indicators.some(indicator => 
+        className.includes(indicator) || 
+        role.includes(indicator) ||
+        current.textContent.trim().startsWith('You:')
+      )) {
+        return true;
+      }
+      current = current.parentElement;
+    }
+    return false;
+  }
+
+  findCorrespondingAIResponse(userElement) {
+    // Find the next AI response after this user message
+    let current = userElement;
+    while (current && current.nextElementSibling) {
+      current = current.nextElementSibling;
+      if (!this.isUserMessage(current) && current.textContent.trim().length > 20) {
+        return current.textContent.trim();
+      }
+    }
+    return null;
+  }
+
+  findCorrespondingUserInput(aiElement) {
+    // Find the previous user input before this AI response
+    let current = aiElement;
+    while (current && current.previousElementSibling) {
+      current = current.previousElementSibling;
+      if (this.isUserMessage(current) && current.textContent.trim().length > 5) {
+        return current.textContent.trim();
+      }
+    }
+    return null;
+  }
+
+  extractConversationPairs(messages) {
+    const pairs = [];
+    let currentUserInput = null;
+    
+    for (const message of messages) {
+      if (!message.isAI && message.content) {
+        // This is a user message
+        currentUserInput = message.content;
+      } else if (message.isAI && message.content && currentUserInput) {
+        // This is an AI response, pair it with the last user input
+        pairs.push({
+          id: `${message.id}_pair`,
+          userInput: currentUserInput,
+          aiOutput: message.content,
+          timestamp: message.timestamp || Date.now()
+        });
+        currentUserInput = null; // Reset for next pair
+      }
+    }
+    
+    return pairs;
   }
 
   setupKeyboardShortcuts() {
@@ -1406,7 +1554,8 @@ Current question: ${userQuery}`;
       'extracted_fact': '🧠',
       'ai_response': '💬',
       'user_note': '📝',
-      'memory': '💭'
+      'memory': '💭',
+      'structured_conversation': '🗣️'
     };
     return icons[type] || '💭';
   }

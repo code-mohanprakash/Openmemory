@@ -101,22 +101,51 @@ async function loadRecentMemories() {
     }
     
     const recent = memories.slice(0, 5);
-    recentList.innerHTML = recent.map((memory, index) => `
-      <div class="memory-item" data-index="${index}">
-        <div class="memory-item-container">
-          <div class="memory-checkbox">
-            <input type="checkbox" id="memory-${index}" data-memory-index="${index}">
-          </div>
-          <div class="memory-content">
-            <div class="memory-text">${truncateText(memory.content, 80)}</div>
-            <div class="memory-meta">
-              <span class="memory-date">${formatDate(memory.timestamp)}</span>
-              <span class="memory-source">${memory.source}</span>
+    recentList.innerHTML = recent.map((memory, index) => {
+      // Check if this is a structured conversation memory
+      let memoryDisplay = '';
+      
+      try {
+        const parsedContent = JSON.parse(memory.content);
+        if (parsedContent.user && parsedContent.ai_output) {
+          // This is a structured conversation memory
+          memoryDisplay = `
+            <div class="structured-memory">
+              <div class="user-input">
+                <strong>👤 User:</strong> ${truncateText(parsedContent.user, 60)}
+              </div>
+              <div class="ai-output">
+                <strong>🤖 AI:</strong> ${truncateText(parsedContent.ai_output, 60)}
+              </div>
+            </div>
+          `;
+        } else {
+          // Regular memory
+          memoryDisplay = `<div class="memory-text">${truncateText(memory.content, 80)}</div>`;
+        }
+      } catch (e) {
+        // Not JSON or invalid structure, display as regular memory
+        memoryDisplay = `<div class="memory-text">${truncateText(memory.content, 80)}</div>`;
+      }
+      
+      return `
+        <div class="memory-item" data-index="${index}">
+          <div class="memory-item-container">
+            <div class="memory-checkbox">
+              <input type="checkbox" id="memory-${index}" data-memory-index="${index}">
+            </div>
+            <div class="memory-content">
+              ${memoryDisplay}
+              <div class="memory-meta">
+                <span class="memory-date">${formatDate(memory.timestamp)}</span>
+                <span class="memory-source">${memory.source}</span>
+                ${memory.category === 'structured_conversation' ? '<span class="memory-type">🗣️ Conversation</span>' : ''}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
     
     // Add inject selected button after memories
     recentList.innerHTML += `
