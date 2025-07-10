@@ -334,7 +334,7 @@ class MemoryEngine {
   // Find active conversation that this memory should be appended to
   findActiveConversation(newMemory) {
     const currentTime = Date.now();
-    const conversationTimeWindow = 30 * 60 * 1000; // 30 minutes
+    const conversationTimeWindow = 2 * 60 * 60 * 1000; // 2 hours for same chat session
     
     // Look for recent memories from the same conversation
     const recentMemories = this.memories.filter(memory => {
@@ -353,8 +353,9 @@ class MemoryEngine {
       current.timestamp > latest.timestamp ? current : latest
     );
 
-    // Check if the topics are similar (simple topic detection)
-    if (this.isSimilarTopic(mostRecentMemory.content, newMemory.content)) {
+    // For same conversation ID, be more aggressive about grouping
+    // Only create separate memories for completely different topics
+    if (this.shouldGroupInSameConversation(mostRecentMemory.content, newMemory.content)) {
       return mostRecentMemory;
     }
 
@@ -383,6 +384,45 @@ class MemoryEngine {
     
     const similarity = intersection.size / union.size;
     return similarity > 0.1; // 10% keyword overlap indicates similar topic
+  }
+
+  // Aggressive grouping for same conversation - only separate if topics are completely different
+  shouldGroupInSameConversation(content1, content2) {
+    // Get broader topic categories
+    const category1 = this.categorizeContent(content1);
+    const category2 = this.categorizeContent(content2);
+    
+    // If same category, always group (e.g., both "personal" or both "coding")
+    if (category1 === category2) {
+      return true;
+    }
+    
+    // Check for keyword similarity with more inclusive logic
+    const getKeywords = (text) => {
+      return text.toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .split(/\s+/)
+        .filter(word => word.length > 2) // Include shorter words like "eat", "buy"
+        .filter(word => !['the', 'and', 'but', 'you', 'for', 'are', 'any', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'man', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use'].includes(word));
+    };
+
+    const keywords1 = new Set(getKeywords(content1));
+    const keywords2 = new Set(getKeywords(content2));
+    
+    if (keywords1.size === 0 || keywords2.size === 0) {
+      return true; // Group if we can't determine topic difference
+    }
+
+    // More lenient similarity for same conversation
+    const intersection = new Set([...keywords1].filter(x => keywords2.has(x)));
+    const minSize = Math.min(keywords1.size, keywords2.size);
+    
+    // If they share any meaningful keywords, group them
+    const sharedKeywords = intersection.size;
+    const relativeOverlap = sharedKeywords / minSize;
+    
+    // Group if they share at least 1 keyword or 15% relative overlap
+    return sharedKeywords >= 1 || relativeOverlap > 0.15;
   }
 
   // Categorize content automatically
