@@ -11,6 +11,7 @@ class OpenMemoryIntegration {
       this.isEnabled = true;
       this.lastProcessedMessage = '';
       this.lastDetectedContent = null;
+      this.pendingMemories = null;
       this.conversationStarted = false;
       this.memoryButton = null;
       this.memoryOverlay = null;
@@ -932,8 +933,21 @@ class OpenMemoryIntegration {
           
           // Only check if content is substantial and changed, and looks like a question
           if (currentContent.length > 5 && currentContent !== lastContent && !autoSuggestionsShown && this.looksLikeQuestion(currentContent)) {
-            console.log('OpenMemory: Analyzing user input for relevant memories:', currentContent.substring(0, 50) + '...');
-            await this.analyzeAndSuggestMemories(target, currentContent);
+            console.log('OpenMemory: Preparing memories for potential injection:', currentContent.substring(0, 50) + '...');
+            
+            // Store the relevant memories for this input
+            const relevantMemories = await window.memoryEngine.getRelevantMemories(currentContent, 5);
+            if (relevantMemories.length > 0) {
+              this.pendingMemories = {
+                inputElement: target,
+                userQuery: currentContent,
+                memories: relevantMemories
+              };
+              
+              // Show subtle indicator that memories are ready
+              this.showNotification(`🧠 ${relevantMemories.length} relevant memories ready`, 'info', 2000);
+            }
+            
             autoSuggestionsShown = true;
           }
           
@@ -950,6 +964,83 @@ class OpenMemoryIntegration {
         autoSuggestionsShown = false;
       }
     });
+    
+    // Intercept form submissions and Enter key presses to inject memories
+    this.setupSubmissionInterceptor();
+  }
+
+  setupSubmissionInterceptor() {
+    // Intercept Enter key presses in input fields
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        const target = e.target;
+        if (this.isInputField(target) && this.pendingMemories && this.pendingMemories.inputElement === target) {
+          e.preventDefault();
+          this.injectMemoriesAndSubmit(target);
+          return false;
+        }
+      }
+    }, true); // Use capture phase to intercept before other handlers
+    
+    // Intercept submit button clicks
+    document.addEventListener('click', (e) => {
+      const target = e.target;
+      const isSubmitButton = target.matches('[data-testid="send-button"], button[type="submit"], .send-button, [aria-label*="Send"], [aria-label*="submit"], button[aria-label*="Send"]');
+      
+      if (isSubmitButton && this.pendingMemories) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.injectMemoriesAndSubmit(this.pendingMemories.inputElement);
+        return false;
+      }
+    }, true); // Use capture phase
+  }
+
+  async injectMemoriesAndSubmit(inputElement) {
+    try {
+      if (!this.pendingMemories) return;
+      
+      const { userQuery, memories } = this.pendingMemories;
+      
+      // Format memories for injection
+      const memoryContext = this.formatMemoriesForAutoInjection(memories);
+      
+      // Create enhanced query with memory context
+      const enhancedQuery = `${userQuery}\n\n[Context from my previous conversations: ${memoryContext}]`;
+      
+      // Inject the enhanced query
+      this.setInputValue(inputElement, enhancedQuery);
+      
+      // Show brief notification
+      this.showNotification(`🧠 Injected ${memories.length} memories`, 'success', 1500);
+      
+      // Submit after a brief delay to ensure the value is set
+      setTimeout(() => {
+        this.submitNormally(inputElement);
+      }, 100);
+      
+      // Clear pending memories
+      this.pendingMemories = null;
+      
+    } catch (error) {
+      console.error('OpenMemory: Error injecting memories before submit:', error);
+      // Fall back to normal submission
+      this.submitNormally(inputElement);
+    }
+  }
+
+  submitNormally(inputElement) {
+    // Simulate normal submission
+    const enterEvent = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      code: 'Enter',
+      keyCode: 13,
+      which: 13,
+      bubbles: true,
+      cancelable: false
+    });
+    
+    inputElement.dispatchEvent(enterEvent);
   }
 
   isInputField(element) {
@@ -990,49 +1081,6 @@ class OpenMemoryIntegration {
     return '';
   }
 
-  async analyzeAndSuggestMemories(inputElement, userQuery) {
-    try {
-      // Get relevant memories for the user's query
-      const relevantMemories = await window.memoryEngine.getRelevantMemories(userQuery, 5);
-      
-      if (relevantMemories.length === 0) {
-        console.log('OpenMemory: No relevant memories found for query');
-        return;
-      }
-      
-      console.log('OpenMemory: Found', relevantMemories.length, 'relevant memories for auto-injection');
-      
-      // Automatically inject relevant memories into the input
-      await this.autoInjectRelevantMemories(inputElement, userQuery, relevantMemories);
-      
-    } catch (error) {
-      console.error('OpenMemory: Error analyzing user input for memories:', error);
-    }
-  }
-
-  async autoInjectRelevantMemories(inputElement, userQuery, memories) {
-    try {
-      // Format memories for injection
-      const memoryContext = this.formatMemoriesForAutoInjection(memories);
-      
-      // Get current input value
-      const currentValue = this.getInputValue(inputElement);
-      
-      // Create enhanced query with memory context
-      const enhancedQuery = `${currentValue}\n\n[Context from my previous conversations: ${memoryContext}]`;
-      
-      // Inject the enhanced query
-      this.setInputValue(inputElement, enhancedQuery);
-      
-      // Show notification about auto-injection
-      this.showNotification(`🧠 Auto-injected ${memories.length} relevant memories`, 'success', 3000);
-      
-      console.log('OpenMemory: Auto-injected memories into input field');
-      
-    } catch (error) {
-      console.error('OpenMemory: Error auto-injecting memories:', error);
-    }
-  }
 
   formatMemoriesForAutoInjection(memories) {
     return memories.map(memory => {
