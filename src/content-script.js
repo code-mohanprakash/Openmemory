@@ -1,10 +1,10 @@
 /**
- * OpenMemory Content Script
+ * LocalBrain Content Script
  * Automatically detects and saves key facts from AI conversations
  * Injects relevant memories when starting new conversations
  */
 
-class OpenMemoryIntegration {
+class LocalBrainIntegration {
   constructor() {
     try {
       this.platform = this.detectPlatform();
@@ -28,10 +28,10 @@ class OpenMemoryIntegration {
       this.maxNotifications = 2;
       this.notificationCooldown = 3000; // 3 seconds between similar notifications
       
-      console.log('OpenMemory: Initializing on', this.platform);
+      console.log('LocalBrain: Initializing on', this.platform);
       this.init();
     } catch (error) {
-      console.error('OpenMemory: Constructor error:', error);
+      console.error('LocalBrain: Constructor error:', error);
       throw error;
     }
   }
@@ -72,7 +72,7 @@ class OpenMemoryIntegration {
       return 'zendesk';
     }
     
-    console.log('OpenMemory: Unknown platform detected:', hostname);
+    console.log('LocalBrain: Unknown platform detected:', hostname);
     return 'unknown';
   }
 
@@ -88,7 +88,7 @@ class OpenMemoryIntegration {
       }
 
       if (!window.memoryEngine) {
-        console.error('OpenMemory: Memory engine failed to load');
+        console.error('LocalBrain: Memory engine failed to load');
         this.showNotification('Memory engine failed to load', 'error');
         return;
       }
@@ -99,45 +99,45 @@ class OpenMemoryIntegration {
       try {
         this.setupMessageObserver();
       } catch (error) {
-        console.error('OpenMemory: Failed to setup message observer:', error);
+        console.error('LocalBrain: Failed to setup message observer:', error);
       }
 
       try {
         this.injectMemoryButton();
       } catch (error) {
-        console.error('OpenMemory: Failed to inject memory button:', error);
+        console.error('LocalBrain: Failed to inject memory button:', error);
       }
 
       try {
         this.setupKeyboardShortcuts();
       } catch (error) {
-        console.error('OpenMemory: Failed to setup keyboard shortcuts:', error);
+        console.error('LocalBrain: Failed to setup keyboard shortcuts:', error);
       }
 
       try {
         this.setupAutoMemoryDetection();
       } catch (error) {
-        console.error('OpenMemory: Failed to setup auto memory detection:', error);
+        console.error('LocalBrain: Failed to setup auto memory detection:', error);
       }
       
       // Auto-inject memories on new conversation
       try {
         this.checkForNewConversation();
       } catch (error) {
-        console.error('OpenMemory: Failed to check for new conversation:', error);
+        console.error('LocalBrain: Failed to check for new conversation:', error);
       }
       
-      console.log('OpenMemory: Ready on', this.platform);
+      console.log('LocalBrain: Ready on', this.platform);
 
       // Removed platform activation notification
     } catch (error) {
-      console.error('OpenMemory: Initialization failed:', error);
-      this.showNotification('OpenMemory initialization failed', 'error');
+      console.error('LocalBrain: Initialization failed:', error);
+      this.showNotification('LocalBrain initialization failed', 'error');
     }
   }
 
   setupMessageObserver() {
-    console.log('OpenMemory: Setting up message observer for', this.platform);
+    console.log('LocalBrain: Setting up message observer for', this.platform);
     
     try {
       // Debounce function to avoid processing the same content multiple times
@@ -150,14 +150,14 @@ class OpenMemoryIntegration {
             this.scanForNewMessages();
           }, 500); // Wait 500ms after changes stop
         } catch (error) {
-          console.error('OpenMemory: Error in mutation observer:', error);
+          console.error('LocalBrain: Error in mutation observer:', error);
         }
       });
 
       // Start observing the conversation area
       const conversationArea = this.getConversationArea();
       if (conversationArea) {
-        console.log('OpenMemory: Found conversation area:', conversationArea);
+        console.log('LocalBrain: Found conversation area:', conversationArea);
         observer.observe(conversationArea, {
           childList: true,
           subtree: true,
@@ -172,17 +172,17 @@ class OpenMemoryIntegration {
           try {
             this.scanForNewMessages();
           } catch (error) {
-            console.error('OpenMemory: Error in periodic check:', error);
+            console.error('LocalBrain: Error in periodic check:', error);
           }
         }, 5000); // Check every 5 seconds
         
       } else {
-        console.warn('OpenMemory: No conversation area found, retrying in 2 seconds...');
+        console.warn('LocalBrain: No conversation area found, retrying in 2 seconds...');
         // Use a more robust retry mechanism
         this.retrySetupObserver();
       }
     } catch (error) {
-      console.error('OpenMemory: Error setting up message observer:', error);
+      console.error('LocalBrain: Error setting up message observer:', error);
     }
   }
 
@@ -192,7 +192,7 @@ class OpenMemoryIntegration {
     
     const retryInterval = setInterval(() => {
       retryCount++;
-      console.log(`OpenMemory: Retry attempt ${retryCount} for message observer setup`);
+      console.log(`LocalBrain: Retry attempt ${retryCount} for message observer setup`);
       
       try {
         const conversationArea = this.getConversationArea();
@@ -202,11 +202,11 @@ class OpenMemoryIntegration {
           return;
         }
       } catch (error) {
-        console.error('OpenMemory: Error during retry:', error);
+        console.error('LocalBrain: Error during retry:', error);
       }
       
       if (retryCount >= maxRetries) {
-        console.error('OpenMemory: Max retries reached, giving up on message observer setup');
+        console.error('LocalBrain: Max retries reached, giving up on message observer setup');
         clearInterval(retryInterval);
       }
     }, 2000);
@@ -222,18 +222,18 @@ class OpenMemoryIntegration {
         if (this.platform === 'zendesk') {
           // For Zendesk, we want to capture all relevant content (customer messages, agent responses, internal notes)
           if (message.content && (message.isCustomer || message.isAgent || message.isInternal || message.isTicketTitle || message.isTicketDescription)) {
-            console.log('OpenMemory: Found new Zendesk content:', message.content.substring(0, 100) + '...');
+            console.log('LocalBrain: Found new Zendesk content:', message.content.substring(0, 100) + '...');
             this.processNewContent(message.content);
             this.processedMessages.add(message.id);
           }
         } else if (message.isAI && message.content) {
-          console.log('OpenMemory: Found new AI message:', message.content.substring(0, 100) + '...');
+          console.log('LocalBrain: Found new AI message:', message.content.substring(0, 100) + '...');
           this.processNewContent(message.content);
           this.processedMessages.add(message.id);
         }
       });
     } catch (error) {
-      console.error('OpenMemory: Error scanning for messages:', error);
+      console.error('LocalBrain: Error scanning for messages:', error);
     }
   }
 
@@ -357,7 +357,7 @@ class OpenMemoryIntegration {
         }
       }
     } catch (error) {
-      console.error('OpenMemory: Error getting messages:', error);
+      console.error('LocalBrain: Error getting messages:', error);
     }
     
     return messages;
@@ -389,17 +389,17 @@ class OpenMemoryIntegration {
     if (textContent === this.lastProcessedMessage) {return;}
     this.lastProcessedMessage = textContent;
 
-    console.log('OpenMemory: Processing new content:', textContent.substring(0, 100) + '...');
-    console.log('OpenMemory: Content length:', textContent.length);
+    console.log('LocalBrain: Processing new content:', textContent.substring(0, 100) + '...');
+    console.log('LocalBrain: Content length:', textContent.length);
 
     // Check if this is an AI response and enhance it with memory if we have a pending query
     if (this.looksLikeAIResponse(textContent)) {
-      console.log('OpenMemory: Detected AI response, checking for memory enhancement');
+      console.log('LocalBrain: Detected AI response, checking for memory enhancement');
       this.lastDetectedContent = textContent;
       
       // Check if we have a pending query with memories to enhance the response
       if (this.pendingQuery && (Date.now() - this.pendingQuery.timestamp < 30000)) { // 30 second window
-        console.log('OpenMemory: Enhancing AI response with memory context');
+        console.log('LocalBrain: Enhancing AI response with memory context');
         this.enhanceAIResponse(content, this.pendingQuery);
         this.pendingQuery = null; // Clear after use
       }
@@ -407,7 +407,7 @@ class OpenMemoryIntegration {
       // Update button to indicate new content is available
       this.updateMemoryButton();
     } else {
-      console.log('OpenMemory: Content not recognized as AI response');
+      console.log('LocalBrain: Content not recognized as AI response');
     }
   }
 
@@ -465,9 +465,9 @@ class OpenMemoryIntegration {
   }
 
   async extractAndSaveMemories(content) {
-    console.log('OpenMemory: Checking if content is worth saving...');
+    console.log('LocalBrain: Checking if content is worth saving...');
     if (!window.memoryEngine.isWorthSaving(content)) {
-      console.log('OpenMemory: Content not worth saving');
+      console.log('LocalBrain: Content not worth saving');
       return;
     }
 
@@ -475,12 +475,12 @@ class OpenMemoryIntegration {
     const _progress = this.showMemoryProgress('Processing memory...');
 
     try {
-      console.log('OpenMemory: Content is worth saving, saving as conversation memory...');
+      console.log('LocalBrain: Content is worth saving, saving as conversation memory...');
       
       let memory = null;
       // Save the full response as a conversation memory (will be appended to existing if same topic)
       if (content.length > 50) {
-        console.log('OpenMemory: Saving conversation memory');
+        console.log('LocalBrain: Saving conversation memory');
         memory = await window.memoryEngine.saveMemory(content, {
           type: 'conversation', 
           platform: this.platform,
@@ -492,13 +492,13 @@ class OpenMemoryIntegration {
 
       // Extract and save key facts only if they're substantial
       const keyFacts = window.memoryEngine.extractKeyFacts(content);
-      console.log('OpenMemory: Extracted', keyFacts.length, 'key facts');
+      console.log('LocalBrain: Extracted', keyFacts.length, 'key facts');
       
       let savedFacts = 0;
       // Save key facts as separate memories only if they're significant
       for (const fact of keyFacts) {
         if (fact.length > 30) { // Only save substantial facts
-          console.log('OpenMemory: Saving fact:', fact.substring(0, 50) + '...');
+          console.log('LocalBrain: Saving fact:', fact.substring(0, 50) + '...');
           const factMemory = await window.memoryEngine.saveMemory(fact, {
             type: 'extracted_fact',
             platform: this.platform,
@@ -523,9 +523,9 @@ class OpenMemoryIntegration {
       // Update memory button if visible
       this.updateMemoryButton();
       
-      console.log('OpenMemory: Memory extraction complete');
+      console.log('LocalBrain: Memory extraction complete');
     } catch (error) {
-      console.error('OpenMemory: Error saving memories:', error);
+      console.error('LocalBrain: Error saving memories:', error);
       this.showNotification('Failed to save memory', 'error');
     } finally {
       // Hide progress indicator
@@ -534,27 +534,27 @@ class OpenMemoryIntegration {
   }
 
   injectMemoryButton() {
-    console.log('OpenMemory: Attempting to inject memory button...');
+    console.log('LocalBrain: Attempting to inject memory button...');
     
     // Remove any existing button first
-    const existingButton = document.getElementById('openmemory-button');
+    const existingButton = document.getElementById('LocalBrain-button');
     if (existingButton) {
       existingButton.remove();
-      console.log('OpenMemory: Removed existing button');
+      console.log('LocalBrain: Removed existing button');
     }
     
     // Ensure we have a body element
     if (!document.body) {
-      console.error('OpenMemory: No body element found, cannot inject button');
+      console.error('LocalBrain: No body element found, cannot inject button');
       return;
     }
     
     try {
       // Create single combined button
       const button = document.createElement('button');
-      button.id = 'openmemory-button';
+      button.id = 'LocalBrain-button';
       button.innerHTML = '🔄 Update Memory';
-      button.className = 'openmemory-button';
+      button.className = 'LocalBrain-button';
       button.title = 'Click: Update memories | Double-click: View all memories';
       
       // Add platform-specific styling adjustments
@@ -616,10 +616,10 @@ class OpenMemoryIntegration {
       
       // Add button to the page with retry logic
       const injectButton = () => {
-        if (document.body && !document.getElementById('openmemory-button')) {
+        if (document.body && !document.getElementById('LocalBrain-button')) {
           document.body.appendChild(button);
           this.memoryButton = button;
-          console.log('OpenMemory: Memory button successfully injected!');
+          console.log('LocalBrain: Memory button successfully injected!');
           
           // Update button text with memory count
           this.updateMemoryButton();
@@ -641,15 +641,15 @@ class OpenMemoryIntegration {
           if (injectButton() || attempts >= maxAttempts) {
             clearInterval(retryInterval);
             if (attempts >= maxAttempts) {
-              console.error('OpenMemory: Failed to inject button after maximum attempts');
-              this.showNotification('❌ Failed to load OpenMemory button', 'error');
+              console.error('LocalBrain: Failed to inject button after maximum attempts');
+              this.showNotification('❌ Failed to load LocalBrain button', 'error');
             }
           }
         }, 100);
       }
       
     } catch (error) {
-      console.error('OpenMemory: Error creating memory button:', error);
+      console.error('LocalBrain: Error creating memory button:', error);
       this.showNotification('❌ Failed to create memory button', 'error');
     }
   }
@@ -666,7 +666,7 @@ class OpenMemoryIntegration {
       // Check if user has selected text to save as structured memory
       const selectedText = window.getSelection().toString().trim();
       if (selectedText && selectedText.length > 20) {
-        console.log('OpenMemory: User selected text for memory:', selectedText.substring(0, 100) + '...');
+        console.log('LocalBrain: User selected text for memory:', selectedText.substring(0, 100) + '...');
         await this.saveSelectedTextAsStructuredMemory(selectedText);
         newMemoriesCount++;
         
@@ -688,7 +688,7 @@ class OpenMemoryIntegration {
       }
       
     } catch (error) {
-      console.error('OpenMemory: Manual update failed:', error);
+      console.error('LocalBrain: Manual update failed:', error);
       this.showNotification('❌ Failed to save memories', 'error');
     } finally {
       this.memoryButton.disabled = false;
@@ -725,7 +725,7 @@ class OpenMemoryIntegration {
         }
       }
     } catch (error) {
-      console.error('OpenMemory: Error getting recent content:', error);
+      console.error('LocalBrain: Error getting recent content:', error);
     }
     return null;
   }
@@ -736,7 +736,7 @@ class OpenMemoryIntegration {
     window.memoryEngine.getMemoryStats().then(stats => {
       this.memoryButton.innerHTML = `🔄 Update Memory (${stats.total})`;
     }).catch(error => {
-      console.error('OpenMemory: Failed to get memory stats:', error);
+      console.error('LocalBrain: Failed to get memory stats:', error);
       this.memoryButton.innerHTML = '🔄 Update Memory';
     });
   }
@@ -770,7 +770,7 @@ class OpenMemoryIntegration {
       
       this.showNotification('✅ Structured memory saved!', 'success', 3000);
     } catch (error) {
-      console.error('OpenMemory: Error saving selected text:', error);
+      console.error('LocalBrain: Error saving selected text:', error);
       this.showNotification('❌ Failed to save selected text', 'error');
     }
   }
@@ -796,7 +796,7 @@ class OpenMemoryIntegration {
         this.showNotification('✅ All conversations up to date!', 'info', 2000);
       }
     } catch (error) {
-      console.error('OpenMemory: Error saving conversation:', error);
+      console.error('LocalBrain: Error saving conversation:', error);
       this.showNotification('❌ Failed to save conversation', 'error');
     }
   }
@@ -910,7 +910,7 @@ class OpenMemoryIntegration {
   }
 
   setupAutoMemoryDetection() {
-    console.log('OpenMemory: Setting up automatic memory detection...');
+    console.log('LocalBrain: Setting up automatic memory detection...');
     
     // Track current input and its content
     let currentInput = null;
@@ -925,7 +925,7 @@ class OpenMemoryIntegration {
         currentInput = target;
         lastContent = this.getInputValue(target);
         autoSuggestionsShown = false;
-        console.log('OpenMemory: Monitoring input field for auto-suggestions');
+        console.log('LocalBrain: Monitoring input field for auto-suggestions');
       }
     });
     
@@ -941,12 +941,12 @@ class OpenMemoryIntegration {
           
           // Only check if content is substantial and changed, and looks like a question
           if (currentContent.length > 5 && currentContent !== lastContent && !autoSuggestionsShown && this.looksLikeQuestion(currentContent)) {
-            console.log('OpenMemory: Preparing memories for potential injection:', currentContent.substring(0, 50) + '...');
+            console.log('LocalBrain: Preparing memories for potential injection:', currentContent.substring(0, 50) + '...');
             
             // Store the user query for potential response enhancement
             const relevantMemories = await window.memoryEngine.getRelevantMemories(currentContent, 5);
             if (relevantMemories.length > 0) {
-              console.log('OpenMemory: Found relevant memories, preparing for response enhancement');
+              console.log('LocalBrain: Found relevant memories, preparing for response enhancement');
               
               // Store the query and memories for response enhancement
               this.pendingQuery = {
@@ -1026,7 +1026,7 @@ class OpenMemoryIntegration {
           if (isParentSubmitButton && this.pendingMemories) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('OpenMemory: Intercepted submit button (parent):', buttonElement);
+            console.log('LocalBrain: Intercepted submit button (parent):', buttonElement);
             this.injectMemoriesAndSubmit(this.pendingMemories.inputElement);
             return false;
           }
@@ -1036,7 +1036,7 @@ class OpenMemoryIntegration {
       if (isSubmitButton && this.pendingMemories) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('OpenMemory: Intercepted submit button:', target);
+        console.log('LocalBrain: Intercepted submit button:', target);
         this.injectMemoriesAndSubmit(this.pendingMemories.inputElement);
         return false;
       }
@@ -1070,7 +1070,7 @@ class OpenMemoryIntegration {
       this.pendingMemories = null;
       
     } catch (error) {
-      console.error('OpenMemory: Error injecting memories before submit:', error);
+      console.error('LocalBrain: Error injecting memories before submit:', error);
       // Fall back to normal submission
       this.submitNormally(inputElement);
     }
@@ -1092,12 +1092,12 @@ class OpenMemoryIntegration {
 
   showSmartMemoryPrompt(inputElement, memories, userQuery) {
     // Remove any existing prompt
-    const existing = document.querySelector('.openmemory-smart-prompt');
+    const existing = document.querySelector('.LocalBrain-smart-prompt');
     if (existing) {existing.remove();}
 
     // Create smart prompt overlay
     const prompt = document.createElement('div');
-    prompt.className = 'openmemory-smart-prompt';
+    prompt.className = 'LocalBrain-smart-prompt';
     prompt.style.cssText = `
       position: fixed;
       top: 120px;
@@ -1124,7 +1124,7 @@ class OpenMemoryIntegration {
       <div style="display: flex; align-items: center; margin-bottom: 12px;">
         <div style="font-size: 20px; margin-right: 8px;">🧠</div>
         <div style="font-weight: 600; color: #1f2937;">Found Relevant Memories</div>
-        <button onclick="this.closest('.openmemory-smart-prompt').remove()" 
+        <button onclick="this.closest('.LocalBrain-smart-prompt').remove()" 
                 style="margin-left: auto; background: none; border: none; font-size: 18px; cursor: pointer; color: #6b7280;">×</button>
       </div>
       
@@ -1205,7 +1205,7 @@ class OpenMemoryIntegration {
       }, 500);
       
     } catch (error) {
-      console.error('OpenMemory: Error including memories:', error);
+      console.error('LocalBrain: Error including memories:', error);
     }
   }
 
@@ -1237,7 +1237,7 @@ class OpenMemoryIntegration {
       const indicatesUnknown = unknownIndicators.some(pattern => pattern.test(currentResponse));
       
       if (indicatesUnknown || currentResponse.length < 100) {
-        console.log('OpenMemory: AI response indicates lack of knowledge, enhancing with memories');
+        console.log('LocalBrain: AI response indicates lack of knowledge, enhancing with memories');
         
         // Create enhanced response with memory context
         const memoryContext = this.formatMemoriesForResponse(memories);
@@ -1250,7 +1250,7 @@ class OpenMemoryIntegration {
       }
       
     } catch (error) {
-      console.error('OpenMemory: Error enhancing AI response:', error);
+      console.error('LocalBrain: Error enhancing AI response:', error);
     }
   }
 
@@ -1293,7 +1293,7 @@ ${originalResponse.includes('don\'t know') || originalResponse.includes('don\'t 
       responseElement.dispatchEvent(event);
       
     } catch (error) {
-      console.error('OpenMemory: Error replacing AI response:', error);
+      console.error('LocalBrain: Error replacing AI response:', error);
     }
   }
 
@@ -1383,12 +1383,12 @@ ${originalResponse.includes('don\'t know') || originalResponse.includes('don\'t 
 
   showAutoSuggestionNotification(memories, inputElement, userQuery) {
     // Remove any existing auto-suggestion
-    const existingSuggestion = document.querySelector('.openmemory-auto-suggestion');
+    const existingSuggestion = document.querySelector('.LocalBrain-auto-suggestion');
     if (existingSuggestion) {existingSuggestion.remove();}
     
     // Create auto-suggestion UI
     const suggestion = document.createElement('div');
-    suggestion.className = 'openmemory-auto-suggestion';
+    suggestion.className = 'LocalBrain-auto-suggestion';
     suggestion.style.cssText = `
       position: fixed;
       top: 200px;
@@ -1512,10 +1512,10 @@ Current question: ${userQuery}`;
       // Show success notification
       this.showNotification(`✨ Auto-included ${memories.length} relevant memories from your past conversations`, 'success', 4000);
       
-      console.log('OpenMemory: Auto-injected memories successfully');
+      console.log('LocalBrain: Auto-injected memories successfully');
       
     } catch (error) {
-      console.error('OpenMemory: Error auto-injecting memories:', error);
+      console.error('LocalBrain: Error auto-injecting memories:', error);
       this.showNotification('❌ Failed to auto-include memories', 'error');
     }
   }
@@ -1546,7 +1546,7 @@ Current question: ${userQuery}`;
   }
 
   async injectSpecificMemories(memories) {
-    console.log('OpenMemory: Injecting specific memories:', memories);
+    console.log('LocalBrain: Injecting specific memories:', memories);
     const input = this.getCurrentInput();
     if (!input) {
       this.showNotification('No input field found', 'error');
@@ -1631,7 +1631,7 @@ Current question: ${userQuery}`;
           return input;
         }
       } catch (error) {
-        console.warn('OpenMemory: Invalid selector:', selector, error);
+        console.warn('LocalBrain: Invalid selector:', selector, error);
       }
     }
     
@@ -1700,7 +1700,7 @@ Current question: ${userQuery}`;
 
   showMemoryHint(count) {
     const hint = document.createElement('div');
-    hint.className = 'openmemory-hint';
+    hint.className = 'LocalBrain-hint';
     hint.innerHTML = `💡 I found ${count} relevant memories from your past conversations. Press Ctrl+M to include them.`;
     
     document.body.appendChild(hint);
@@ -1721,13 +1721,13 @@ Current question: ${userQuery}`;
     if (this.recentNotifications.has(notificationKey)) {
       const lastShown = this.recentNotifications.get(notificationKey);
       if (now - lastShown < this.notificationCooldown) {
-        console.log('OpenMemory: Skipping duplicate notification:', message);
+        console.log('LocalBrain: Skipping duplicate notification:', message);
         return null;
       }
     }
     
     // Limit total number of notifications
-    const existingNotifications = document.querySelectorAll('.openmemory-notification');
+    const existingNotifications = document.querySelectorAll('.LocalBrain-notification');
     if (existingNotifications.length >= this.maxNotifications) {
       // Remove oldest notification
       const oldest = existingNotifications[0];
@@ -1741,7 +1741,7 @@ Current question: ${userQuery}`;
     this.recentNotifications.set(notificationKey, now);
     
     // Calculate vertical position based on existing notifications
-    const remainingNotifications = document.querySelectorAll('.openmemory-notification');
+    const remainingNotifications = document.querySelectorAll('.LocalBrain-notification');
     let topOffset = this.getBaseNotificationTop();
     
     // Stack notifications vertically with 8px spacing
@@ -1751,7 +1751,7 @@ Current question: ${userQuery}`;
     });
     
     const notification = document.createElement('div');
-    notification.className = `openmemory-notification openmemory-${type}`;
+    notification.className = `LocalBrain-notification LocalBrain-${type}`;
     
     // Set dynamic top position
     notification.style.top = `${topOffset}px`;
@@ -1808,7 +1808,7 @@ Current question: ${userQuery}`;
 
   // Reposition all notifications after one is removed
   repositionNotifications() {
-    const notifications = document.querySelectorAll('.openmemory-notification');
+    const notifications = document.querySelectorAll('.LocalBrain-notification');
     let topOffset = this.getBaseNotificationTop();
     
     notifications.forEach((notif, _index) => {
@@ -1820,11 +1820,11 @@ Current question: ${userQuery}`;
 
   // Show memory capture progress
   showMemoryProgress(message) {
-    const existing = document.querySelector('.openmemory-progress');
+    const existing = document.querySelector('.LocalBrain-progress');
     if (existing) {existing.remove();}
 
     // Calculate position below notifications
-    const notifications = document.querySelectorAll('.openmemory-notification');
+    const notifications = document.querySelectorAll('.LocalBrain-notification');
     let topOffset = this.getBaseNotificationTop();
     
     notifications.forEach((notif) => {
@@ -1836,7 +1836,7 @@ Current question: ${userQuery}`;
     topOffset += 8;
 
     const progress = document.createElement('div');
-    progress.className = 'openmemory-progress';
+    progress.className = 'LocalBrain-progress';
     progress.style.top = `${topOffset}px`;
     progress.innerHTML = `
       <div class="progress-content">
@@ -1850,7 +1850,7 @@ Current question: ${userQuery}`;
   }
 
   hideMemoryProgress() {
-    const progress = document.querySelector('.openmemory-progress');
+    const progress = document.querySelector('.LocalBrain-progress');
     if (progress) {
       progress.classList.add('fadeout');
       setTimeout(() => progress.remove(), 300);
@@ -1870,9 +1870,9 @@ Current question: ${userQuery}`;
   createMemoryOverlay(memories) {
     // Create overlay container
     const overlay = document.createElement('div');
-    overlay.className = 'openmemory-overlay';
+    overlay.className = 'LocalBrain-overlay';
     overlay.innerHTML = `
-      <div class="openmemory-panel">
+      <div class="LocalBrain-panel">
         <div class="panel-header">
           <h2>🧠 All Memories (${memories.length})</h2>
           <div class="header-controls">
@@ -2174,33 +2174,33 @@ Current question: ${userQuery}`;
         this.memoryOverlay.remove();
         this.memoryOverlay = null;
       }
-      console.log('OpenMemory: Cleanup completed');
+      console.log('LocalBrain: Cleanup completed');
     } catch (error) {
-      console.error('OpenMemory: Error during cleanup:', error);
+      console.error('LocalBrain: Error during cleanup:', error);
     }
   }
 }
 
 // Global message listener setup
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  console.log('OpenMemory: Global message listener received:', message);
+  console.log('LocalBrain: Global message listener received:', message);
   if (message.action === 'inject_memories') {
-    if (window.openMemoryIntegration) {
-      window.openMemoryIntegration.injectMemories();
+    if (window.LocalBrainIntegration) {
+      window.LocalBrainIntegration.injectMemories();
       sendResponse({success: true});
     } else {
       sendResponse({success: false, error: 'Extension not initialized'});
     }
   } else if (message.action === 'inject_selected_memories') {
-    if (window.openMemoryIntegration && message.memories) {
-      window.openMemoryIntegration.injectSpecificMemories(message.memories);
+    if (window.LocalBrainIntegration && message.memories) {
+      window.LocalBrainIntegration.injectSpecificMemories(message.memories);
       sendResponse({success: true});
     } else {
       sendResponse({success: false, error: 'Extension not initialized or no memories provided'});
     }
   } else if (message.action === 'show_memory_overlay') {
-    if (window.openMemoryIntegration) {
-      window.openMemoryIntegration.showMemoryOverlay();
+    if (window.LocalBrainIntegration) {
+      window.LocalBrainIntegration.showMemoryOverlay();
       sendResponse({success: true});
     } else {
       sendResponse({success: false, error: 'Extension not initialized'});
@@ -2210,19 +2210,19 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 // Add debugging and improved initialization
-console.log('OpenMemory: Content script loaded');
+console.log('LocalBrain: Content script loaded');
 
-function initializeOpenMemory() {
-  console.log('OpenMemory: Starting initialization process...');
-  console.log('OpenMemory: Current URL:', window.location.href);
-  console.log('OpenMemory: Document ready state:', document.readyState);
-  console.log('OpenMemory: Body available:', !!document.body);
+function initializeLocalBrain() {
+  console.log('LocalBrain: Starting initialization process...');
+  console.log('LocalBrain: Current URL:', window.location.href);
+  console.log('LocalBrain: Document ready state:', document.readyState);
+  console.log('LocalBrain: Body available:', !!document.body);
   
   try {
     // Show initialization start indicator
     if (document.body) {
       const initDiv = document.createElement('div');
-      initDiv.id = 'openmemory-init-indicator';
+      initDiv.id = 'LocalBrain-init-indicator';
       initDiv.style.cssText = `
         position: fixed;
         top: 20px;
@@ -2236,24 +2236,24 @@ function initializeOpenMemory() {
         font-size: 12px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.2);
       `;
-      initDiv.textContent = 'OpenMemory: Loading...';
+      initDiv.textContent = 'LocalBrain: Loading...';
       document.body.appendChild(initDiv);
       
       // Remove indicator after 3 seconds
       setTimeout(() => {
-        const indicator = document.getElementById('openmemory-init-indicator');
+        const indicator = document.getElementById('LocalBrain-init-indicator');
         if (indicator) {indicator.remove();}
       }, 3000);
     }
     
-    console.log('OpenMemory: Creating integration instance...');
-    window.openMemoryIntegration = new OpenMemoryIntegration();
-    console.log('OpenMemory: Integration created successfully');
-    console.log('OpenMemory: Platform detected:', window.openMemoryIntegration.platform);
+    console.log('LocalBrain: Creating integration instance...');
+    window.LocalBrainIntegration = new LocalBrainIntegration();
+    console.log('LocalBrain: Integration created successfully');
+    console.log('LocalBrain: Platform detected:', window.LocalBrainIntegration.platform);
     
   } catch (error) {
-    console.error('OpenMemory: Failed to initialize:', error);
-    console.error('OpenMemory: Error stack:', error.stack);
+    console.error('LocalBrain: Failed to initialize:', error);
+    console.error('LocalBrain: Error stack:', error.stack);
     
     // Show a visible error notification
     if (document.body) {
@@ -2273,7 +2273,7 @@ function initializeOpenMemory() {
         max-width: 300px;
       `;
       errorDiv.innerHTML = `
-        <div style="font-weight: bold; margin-bottom: 4px;">OpenMemory: Failed to load</div>
+        <div style="font-weight: bold; margin-bottom: 4px;">LocalBrain: Failed to load</div>
         <div style="font-size: 12px; opacity: 0.9;">Error: ${error.message}</div>
         <div style="font-size: 11px; opacity: 0.8; margin-top: 4px;">Check console for details</div>
       `;
@@ -2286,17 +2286,17 @@ function initializeOpenMemory() {
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeOpenMemory);
+  document.addEventListener('DOMContentLoaded', initializeLocalBrain);
 } else {
   // DOM is already ready
   if (document.body) {
-    initializeOpenMemory();
+    initializeLocalBrain();
   } else {
     // Wait for body to be available
     const observer = new MutationObserver((_mutations, obs) => {
       if (document.body) {
         obs.disconnect();
-        initializeOpenMemory();
+        initializeLocalBrain();
       }
     });
     observer.observe(document.documentElement, {
@@ -2308,7 +2308,7 @@ if (document.readyState === 'loading') {
 
 // Add cleanup on page unload
 window.addEventListener('beforeunload', () => {
-  if (window.openMemoryIntegration) {
-    window.openMemoryIntegration.cleanup();
+  if (window.LocalBrainIntegration) {
+    window.LocalBrainIntegration.cleanup();
   }
 });

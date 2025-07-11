@@ -1,5 +1,5 @@
 /**
- * OpenMemory Engine - Local AI Memory Management
+ * LocalBrain Engine - Local AI Memory Management
  * Stores and retrieves memories locally using Chrome storage
  */
 
@@ -15,12 +15,12 @@ class MemoryEngine {
     if (this.initialized) {return;}
     
     try {
-      const result = await chrome.storage.local.get(['openmemory_data']);
-      this.memories = result.openmemory_data || [];
+      const result = await chrome.storage.local.get(['LocalBrain_data']);
+      this.memories = result.LocalBrain_data || [];
       this.initialized = true;
-      console.log('OpenMemory: Loaded', this.memories.length, 'memories');
+      console.log('LocalBrain: Loaded', this.memories.length, 'memories');
     } catch (error) {
-      console.error('OpenMemory: Failed to load memories:', error);
+      console.error('LocalBrain: Failed to load memories:', error);
       this.memories = [];
       this.initialized = true;
     }
@@ -43,7 +43,7 @@ class MemoryEngine {
 
     // Check for duplicates
     if (this.isDuplicate(memory)) {
-      console.log('OpenMemory: Skipping duplicate memory');
+      console.log('LocalBrain: Skipping duplicate memory');
       return null;
     }
 
@@ -57,7 +57,7 @@ class MemoryEngine {
       existingConversation.category = this.categorizeContent(existingConversation.content); // Re-categorize
       existingConversation.summary = this.generateSummary(existingConversation.content); // Re-summarize
       await this.persist();
-      console.log('OpenMemory: Appended to existing conversation:', existingConversation.content.substring(0, 50) + '...');
+      console.log('LocalBrain: Appended to existing conversation:', existingConversation.content.substring(0, 50) + '...');
       return existingConversation;
     }
 
@@ -70,7 +70,7 @@ class MemoryEngine {
     }
 
     await this.persist();
-    console.log('OpenMemory: Saved new memory:', memory.content.substring(0, 50) + '...');
+    console.log('LocalBrain: Saved new memory:', memory.content.substring(0, 50) + '...');
     return memory;
   }
 
@@ -235,7 +235,7 @@ class MemoryEngine {
   async clearAllMemories() {
     this.memories = [];
     await this.persist();
-    console.log('OpenMemory: Cleared all memories');
+    console.log('LocalBrain: Cleared all memories');
   }
 
   async deleteMemory(id) {
@@ -246,9 +246,9 @@ class MemoryEngine {
 
   async persist() {
     try {
-      await chrome.storage.local.set({ openmemory_data: this.memories });
+      await chrome.storage.local.set({ LocalBrain_data: this.memories });
     } catch (error) {
-      console.error('OpenMemory: Failed to persist memories:', error);
+      console.error('LocalBrain: Failed to persist memories:', error);
     }
   }
 

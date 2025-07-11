@@ -1,5 +1,5 @@
 /**
- * Production Error Handler for OpenMemory Extension
+ * Production Error Handler for LocalBrain Extension
  */
 
 class ErrorHandler {
@@ -73,7 +73,7 @@ class ErrorHandler {
   }
 
   logError(errorReport) {
-    console.group('🚨 OpenMemory Error Report');
+    console.group('🚨 LocalBrain Error Report');
     console.error('Context:', errorReport.context);
     console.error('Message:', errorReport.message);
     console.error('Stack:', errorReport.stack);
@@ -84,7 +84,7 @@ class ErrorHandler {
 
   async storeError(errorReport) {
     try {
-      const _storageKey = `openmemory_error_${errorReport.timestamp}`;
+      const _storageKey = `LocalBrain_error_${errorReport.timestamp}`;
       const errors = await this.getStoredErrors();
       
       // Keep only last 50 errors
@@ -92,7 +92,7 @@ class ErrorHandler {
       recentErrors.push(errorReport);
       
       await chrome.storage.local.set({
-        openmemory_errors: recentErrors
+        LocalBrain_errors: recentErrors
       });
     } catch (storageError) {
       console.warn('Failed to store error report:', storageError);
@@ -101,8 +101,8 @@ class ErrorHandler {
 
   async getStoredErrors() {
     try {
-      const result = await chrome.storage.local.get(['openmemory_errors']);
-      return result.openmemory_errors || [];
+      const result = await chrome.storage.local.get(['LocalBrain_errors']);
+      return result.LocalBrain_errors || [];
     } catch (error) {
       console.warn('Failed to retrieve stored errors:', error);
       return [];
@@ -126,22 +126,22 @@ class ErrorHandler {
   }
 
   disableExtension() {
-    console.error('🛑 OpenMemory: Too many errors detected. Disabling extension.');
+    console.error('🛑 LocalBrain: Too many errors detected. Disabling extension.');
     
     try {
       // Remove all extension elements from DOM
-      document.querySelectorAll('[class*="openmemory"]').forEach(el => {
+      document.querySelectorAll('[class*="LocalBrain"]').forEach(el => {
         el.remove();
       });
 
       // Disable global integration
-      if (window.openMemoryIntegration) {
-        window.openMemoryIntegration.isEnabled = false;
+      if (window.LocalBrainIntegration) {
+        window.LocalBrainIntegration.isEnabled = false;
       }
 
       // Show user notification
       this.showErrorNotification(
-        '🛑 OpenMemory disabled due to errors. Please refresh the page.',
+        '🛑 LocalBrain disabled due to errors. Please refresh the page.',
         'error',
         10000
       );
@@ -161,7 +161,7 @@ class ErrorHandler {
 
   showErrorNotification(message, type = 'error', duration = 5000) {
     const notification = document.createElement('div');
-    notification.className = `openmemory-notification openmemory-${type}`;
+    notification.className = `LocalBrain-notification LocalBrain-${type}`;
     notification.style.cssText = `
       position: fixed;
       top: 20px;
@@ -241,9 +241,9 @@ class ErrorHandler {
   // Clear error history (for debugging)
   async clearErrorHistory() {
     try {
-      await chrome.storage.local.remove(['openmemory_errors']);
+      await chrome.storage.local.remove(['LocalBrain_errors']);
       this.errorCount = 0;
-      console.log('OpenMemory: Error history cleared');
+      console.log('LocalBrain: Error history cleared');
     } catch (error) {
       console.error('Failed to clear error history:', error);
     }
@@ -251,8 +251,8 @@ class ErrorHandler {
 }
 
 // Create global error handler instance
-if (typeof window !== 'undefined' && !window.openMemoryErrorHandler) {
-  window.openMemoryErrorHandler = new ErrorHandler();
+if (typeof window !== 'undefined' && !window.LocalBrainErrorHandler) {
+  window.LocalBrainErrorHandler = new ErrorHandler();
 }
 
 // Export for testing

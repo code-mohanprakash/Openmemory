@@ -1,9 +1,9 @@
 /**
- * Integration tests for OpenMemoryIntegration
+ * Integration tests for LocalBrainIntegration
  */
 
 // Mock the content script class
-class MockOpenMemoryIntegration {
+class MockLocalBrainIntegration {
   constructor() {
     this.platform = 'chatgpt';
     this.isEnabled = true;
@@ -31,7 +31,7 @@ class MockOpenMemoryIntegration {
 
   async createMemoryButton() {
     const button = document.createElement('button');
-    button.className = 'openmemory-button';
+    button.className = 'LocalBrain-button';
     button.innerHTML = '🧠 Update Memory (0)';
     button.onclick = () => this.manualMemoryUpdate();
     
@@ -54,7 +54,7 @@ class MockOpenMemoryIntegration {
     }
 
     // Limit total notifications
-    const existingNotifications = document.querySelectorAll('.openmemory-notification');
+    const existingNotifications = document.querySelectorAll('.LocalBrain-notification');
     if (existingNotifications.length >= this.maxNotifications) {
       const oldest = existingNotifications[0];
       if (oldest) oldest.remove();
@@ -63,7 +63,7 @@ class MockOpenMemoryIntegration {
     this.recentNotifications.set(notificationKey, now);
 
     const notification = document.createElement('div');
-    notification.className = `openmemory-notification openmemory-${type}`;
+    notification.className = `LocalBrain-notification LocalBrain-${type}`;
     notification.innerHTML = `
       <span class="notification-icon">${type === 'success' ? '✅' : 'ℹ️'}</span>
       <span class="notification-message">${message}</span>
@@ -142,7 +142,7 @@ class MockOpenMemoryIntegration {
   }
 }
 
-describe('OpenMemoryIntegration', () => {
+describe('LocalBrainIntegration', () => {
   let integration;
 
   beforeEach(() => {
@@ -158,7 +158,7 @@ describe('OpenMemoryIntegration', () => {
       writable: true
     });
 
-    integration = new MockOpenMemoryIntegration();
+    integration = new MockLocalBrainIntegration();
   });
 
   describe('Platform Detection', () => {
@@ -191,7 +191,7 @@ describe('OpenMemoryIntegration', () => {
       expect(integration.memoryButton).toBeTruthy();
       expect(integration.memoryButton.textContent).toContain('Update Memory');
       
-      const buttonInDOM = document.querySelector('.openmemory-button');
+      const buttonInDOM = document.querySelector('.LocalBrain-button');
       expect(buttonInDOM).toBeTruthy();
     });
 
@@ -210,10 +210,10 @@ describe('OpenMemoryIntegration', () => {
       const notification = integration.showNotification('Test message', 'info');
       
       expect(notification).toBeTruthy();
-      expect(notification.className).toContain('openmemory-notification');
+      expect(notification.className).toContain('LocalBrain-notification');
       expect(notification.textContent).toContain('Test message');
       
-      const notificationInDOM = document.querySelector('.openmemory-notification');
+      const notificationInDOM = document.querySelector('.LocalBrain-notification');
       expect(notificationInDOM).toBeTruthy();
     });
 
@@ -231,7 +231,7 @@ describe('OpenMemoryIntegration', () => {
       integration.showNotification('Message 2', 'info');
       integration.showNotification('Message 3', 'info'); // Should remove first
       
-      const notifications = document.querySelectorAll('.openmemory-notification');
+      const notifications = document.querySelectorAll('.LocalBrain-notification');
       expect(notifications.length).toBeLessThanOrEqual(integration.maxNotifications);
     });
 
@@ -239,8 +239,8 @@ describe('OpenMemoryIntegration', () => {
       const success = integration.showNotification('Success!', 'success');
       const error = integration.showNotification('Error!', 'error');
       
-      expect(success.className).toContain('openmemory-success');
-      expect(error.className).toContain('openmemory-error');
+      expect(success.className).toContain('LocalBrain-success');
+      expect(error.className).toContain('LocalBrain-error');
     });
   });
 

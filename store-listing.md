@@ -1,13 +1,13 @@
-# OpenMemory Chrome Web Store Listing
+# LocalBrain Chrome Web Store Listing
 
 ## App Name
-OpenMemory - AI Memory Sync
+LocalBrain - AI Memory Sync
 
 ## Short Description
 Share memory seamlessly across ChatGPT, Claude, Perplexity, Gemini, Zendesk and more. Local storage, no server needed.
 
 ## Detailed Description
-🧠 **OpenMemory** - The Ultimate AI Memory Management Extension
+🧠 **LocalBrain** - The Ultimate AI Memory Management Extension
 
 Transform how you work with AI by maintaining persistent memory across all your favorite platforms!
 

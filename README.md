@@ -207,7 +207,7 @@ CONFIG.VERBOSE_LOGGING = true;
 
 ### Chrome Web Store Submission
 1. Run production build: `npm run build`
-2. Upload `dist/openmemory-extension-v*.zip`
+2. Upload `dist/LocalBrain-extension-v*.zip`
 3. Complete store listing information
 4. Submit for review
 
@@ -246,7 +246,7 @@ CONFIG.VERBOSE_LOGGING = true;
 ### Error Tracking
 ```javascript
 // Access error statistics
-window.openMemoryErrorHandler.getErrorStats();
+window.LocalBrainErrorHandler.getErrorStats();
 ```
 
 ### Performance Monitoring
@@ -294,7 +294,7 @@ MIT License - see LICENSE file for details
 
 ### Getting Help
 1. Check browser console for error messages
-2. Review error statistics: `window.openMemoryErrorHandler.getErrorStats()`
+2. Review error statistics: `window.LocalBrainErrorHandler.getErrorStats()`
 3. Enable debug mode for detailed logging
 4. Submit issues with reproduction steps
 

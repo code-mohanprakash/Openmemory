@@ -1,6 +1,6 @@
-/* OpenMemory Chrome Extension Styles */
+/* LocalBrain Chrome Extension Styles */
 
-.openmemory-button {
+.LocalBrain-button {
   position: fixed;
   top: 20px;
   right: 20px;
@@ -19,18 +19,18 @@
   user-select: none;
 }
 
-.openmemory-button:hover {
+.LocalBrain-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
   background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
 }
 
-.openmemory-button:active {
+.LocalBrain-button:active {
   transform: translateY(0);
 }
 
 
-.openmemory-notification {
+.LocalBrain-notification {
   position: fixed;
   top: 140px;
   right: 20px;
@@ -54,24 +54,24 @@
   transition: top 0.3s ease;
 }
 
-.openmemory-info {
+.LocalBrain-info {
   background: rgba(102, 126, 234, 0.2);
 }
 
-.openmemory-success {
+.LocalBrain-success {
   background: rgba(34, 197, 94, 0.2);
 }
 
-.openmemory-error {
+.LocalBrain-error {
   background: rgba(239, 68, 68, 0.2);
 }
 
-.openmemory-warning {
+.LocalBrain-warning {
   background: rgba(251, 191, 36, 0.2);
   color: white;
 }
 
-.openmemory-memory {
+.LocalBrain-memory {
   background: rgba(139, 92, 246, 0.2);
 }
 
@@ -111,7 +111,7 @@
 }
 
 /* Progress Indicator */
-.openmemory-progress {
+.LocalBrain-progress {
   position: fixed;
   top: 200px;
   right: 20px;
@@ -155,7 +155,7 @@
   100% { transform: rotate(360deg); }
 }
 
-.openmemory-hint {
+.LocalBrain-hint {
   position: fixed;
   bottom: 20px;
   left: 50%;
@@ -201,7 +201,7 @@
 
 /* Hide memory button on mobile */
 @media (max-width: 768px) {
-  .openmemory-button {
+  .LocalBrain-button {
     display: none;
   }
 }
@@ -209,66 +209,66 @@
 /* Platform-specific adjustments */
 
 /* ChatGPT */
-body[data-openmemory-platform="chatgpt"] .openmemory-button {
+body[data-LocalBrain-platform="chatgpt"] .LocalBrain-button {
   top: 80px; /* Avoid header */
 }
 
-body[data-openmemory-platform="chatgpt"] .openmemory-notification {
+body[data-LocalBrain-platform="chatgpt"] .LocalBrain-notification {
   top: 140px; /* Below button with spacing */
 }
 
-body[data-openmemory-platform="chatgpt"] .openmemory-progress {
+body[data-LocalBrain-platform="chatgpt"] .LocalBrain-progress {
   top: 200px; /* Below notifications */
 }
 
 /* Claude */
-body[data-openmemory-platform="claude"] .openmemory-button {
+body[data-LocalBrain-platform="claude"] .LocalBrain-button {
   top: 20px;
 }
 
-body[data-openmemory-platform="claude"] .openmemory-notification {
+body[data-LocalBrain-platform="claude"] .LocalBrain-notification {
   top: 80px; /* Below button with spacing */
 }
 
-body[data-openmemory-platform="claude"] .openmemory-progress {
+body[data-LocalBrain-platform="claude"] .LocalBrain-progress {
   top: 140px; /* Below notifications */
 }
 
 /* Perplexity */
-body[data-openmemory-platform="perplexity"] .openmemory-notification {
+body[data-LocalBrain-platform="perplexity"] .LocalBrain-notification {
   top: 100px; /* Avoid search bar */
 }
 
-body[data-openmemory-platform="perplexity"] .openmemory-progress {
+body[data-LocalBrain-platform="perplexity"] .LocalBrain-progress {
   top: 160px; /* Below notifications */
 }
 
 /* Zendesk */
-body[data-openmemory-platform="zendesk"] .openmemory-button {
+body[data-LocalBrain-platform="zendesk"] .LocalBrain-button {
   top: 100px; /* Avoid Zendesk top navigation */
   right: 30px;
 }
 
-body[data-openmemory-platform="zendesk"] .openmemory-notification {
+body[data-LocalBrain-platform="zendesk"] .LocalBrain-notification {
   top: 160px; /* Position below button */
   right: 30px;
 }
 
-body[data-openmemory-platform="zendesk"] .openmemory-progress {
+body[data-LocalBrain-platform="zendesk"] .LocalBrain-progress {
   top: 220px; /* Below notifications */
   right: 30px;
 }
 
 /* Ensure notifications don't interfere with page content */
-.openmemory-notification,
-.openmemory-hint,
-.openmemory-button {
+.LocalBrain-notification,
+.LocalBrain-hint,
+.LocalBrain-button {
   pointer-events: auto;
   user-select: none;
 }
 
 /* Fade out animations */
-.openmemory-fade-out {
+.LocalBrain-fade-out {
   animation: fadeOut 0.3s ease forwards;
 }
 
@@ -282,7 +282,7 @@ body[data-openmemory-platform="zendesk"] .openmemory-progress {
 }
 
 /* Memory Overlay Styles */
-.openmemory-overlay {
+.LocalBrain-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -300,11 +300,11 @@ body[data-openmemory-platform="zendesk"] .openmemory-progress {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-.openmemory-overlay.visible {
+.LocalBrain-overlay.visible {
   opacity: 1;
 }
 
-.openmemory-panel {
+.LocalBrain-panel {
   width: 450px;
   height: 85vh;
   max-height: 800px;
@@ -322,7 +322,7 @@ body[data-openmemory-platform="zendesk"] .openmemory-progress {
   transition: transform 0.3s ease;
 }
 
-.openmemory-overlay.visible .openmemory-panel {
+.LocalBrain-overlay.visible .LocalBrain-panel {
   transform: translateX(0);
 }
 
@@ -675,7 +675,7 @@ body[data-openmemory-platform="zendesk"] .openmemory-progress {
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .openmemory-panel {
+  .LocalBrain-panel {
     width: 95vw;
     margin-right: 2.5vw;
     height: 90vh;

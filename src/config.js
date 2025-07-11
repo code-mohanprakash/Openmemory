@@ -1,5 +1,5 @@
 /**
- * Production Configuration for OpenMemory Extension
+ * Production Configuration for LocalBrain Extension
  */
 
 const CONFIG = {
@@ -144,16 +144,16 @@ CONFIG.utils = {
   
   log: (...args) => {
     if (CONFIG.DEBUG || CONFIG.VERBOSE_LOGGING) {
-      console.log('[OpenMemory]', ...args);
+      console.log('[LocalBrain]', ...args);
     }
   },
   
   warn: (...args) => {
-    console.warn('[OpenMemory]', ...args);
+    console.warn('[LocalBrain]', ...args);
   },
   
   error: (...args) => {
-    console.error('[OpenMemory]', ...args);
+    console.error('[LocalBrain]', ...args);
   },
   
   getPlatformConfig: (platform) => {
@@ -206,7 +206,7 @@ Object.freeze(CONFIG.ANALYTICS);
 
 // Export configuration
 if (typeof window !== 'undefined') {
-  window.OPENMEMORY_CONFIG = CONFIG;
+  window.LocalBrain_CONFIG = CONFIG;
 }
 
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {

@@ -1,15 +1,15 @@
 /**
- * OpenMemory Background Script
+ * LocalBrain Background Script
  * Handles extension lifecycle and inter-tab communication
  */
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    console.log('OpenMemory: Extension installed');
+    console.log('LocalBrain: Extension installed');
     
     // Set default settings
     chrome.storage.local.set({
-      openmemory_settings: {
+      LocalBrain_settings: {
         enabled: true,
         autoDetect: true,
         maxMemories: 1000,
@@ -24,7 +24,7 @@ chrome.runtime.onInstalled.addListener((details) => {
       }
     });
   } else if (details.reason === 'update') {
-    console.log('OpenMemory: Extension updated');
+    console.log('LocalBrain: Extension updated');
   }
 });
 
@@ -39,8 +39,8 @@ chrome.action.onClicked.addListener((tab) => {
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'get_memory_stats') {
-    chrome.storage.local.get(['openmemory_data'], (result) => {
-      const memories = result.openmemory_data || [];
+    chrome.storage.local.get(['LocalBrain_data'], (result) => {
+      const memories = result.LocalBrain_data || [];
       sendResponse({
         total: memories.length,
         recent: memories.slice(0, 5)
@@ -69,4 +69,4 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
   });
 });
 
-console.log('OpenMemory: Background script loaded');
+console.log('LocalBrain: Background script loaded');

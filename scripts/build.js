@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Production Build Script for OpenMemory Extension
+ * Production Build Script for LocalBrain Extension
  */
 
 const fs = require('fs');
@@ -16,7 +16,7 @@ class ExtensionBuilder {
   }
 
   async build() {
-    console.log('🚀 Building OpenMemory Extension...\n');
+    console.log('🚀 Building LocalBrain Extension...\n');
 
     try {
       // Step 1: Clean previous build
@@ -47,7 +47,7 @@ class ExtensionBuilder {
       await this.createPackage();
 
       console.log('✅ Build completed successfully!');
-      console.log(`📦 Extension package: dist/openmemory-extension-v${this.version}.zip`);
+      console.log(`📦 Extension package: dist/LocalBrain-extension-v${this.version}.zip`);
 
     } catch (error) {
       console.error('❌ Build failed:', error.message);
@@ -244,7 +244,7 @@ class ExtensionBuilder {
   async createPackage() {
     console.log('📦 Creating extension package...');
 
-    const zipName = `openmemory-extension-v${this.version}.zip`;
+    const zipName = `LocalBrain-extension-v${this.version}.zip`;
     const zipPath = path.join(this.buildDir, zipName);
 
     try {

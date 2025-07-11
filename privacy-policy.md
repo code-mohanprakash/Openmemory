@@ -1,9 +1,9 @@
-# OpenMemory Privacy Policy
+# LocalBrain Privacy Policy
 
 **Last Updated: [Current Date]**
 
 ## Overview
-OpenMemory is a Chrome extension that helps you manage AI conversation memories across multiple platforms. We are committed to protecting your privacy and ensuring your data remains secure.
+LocalBrain is a Chrome extension that helps you manage AI conversation memories across multiple platforms. We are committed to protecting your privacy and ensuring your data remains secure.
 
 ## Data Collection and Storage
 - **Local Storage Only**: All your memories are stored locally on your device using Chrome's storage API
@@ -47,7 +47,7 @@ OpenMemory is a Chrome extension that helps you manage AI conversation memories 
 We may update this privacy policy occasionally. We will notify users of significant changes through the extension update notes.
 
 ## Contact
-For privacy questions or concerns, please contact: support@openmemory.ai
+For privacy questions or concerns, please contact: support@LocalBrain.ai
 
 ## Compliance
 This extension complies with:
