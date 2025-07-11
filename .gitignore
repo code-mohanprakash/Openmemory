@@ -1,3 +1,15 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage reports
+coverage/
+
+# Distribution builds
+dist/
+
 # OS generated files
 .DS_Store
 .DS_Store?
@@ -7,25 +19,39 @@
 ehthumbs.db
 Thumbs.db
 
-# Development files
-*.log
-*.tmp
-*.temp
-
-# Editor files
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# Extension development
-*.pem
-*.crx
-web-store-upload.zip
+# Logs
+*.log
 
-# Personal notes
-notes.md
-todo.md
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
 
-# Screenshots for store
-screenshots/
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# Mac files
+*.dmg
+
+# Windows files
+*.exe

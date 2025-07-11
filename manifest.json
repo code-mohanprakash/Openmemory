@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "OpenMemory - AI Memory Sync",
+  "name": "LocalBrain - AI Memory Sync",
   "version": "1.0.0",
-  "description": "Share memory seamlessly across ChatGPT, Claude, Perplexity, Gemini and more. Local storage, no server needed.",
+  "description": "Share memory seamlessly across ChatGPT, Claude, Perplexity, Gemini and more. Local storage, no server needed. (LocalBrain)",
   
   "permissions": [
     "storage",

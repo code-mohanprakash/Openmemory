@@ -12,7 +12,7 @@ class MemoryEngine {
   }
 
   async init() {
-    if (this.initialized) return;
+    if (this.initialized) {return;}
     
     try {
       const result = await chrome.storage.local.get(['openmemory_data']);
@@ -108,7 +108,7 @@ class MemoryEngine {
 
   // TF-IDF Implementation for better memory relevance scoring
   calculateTFIDFScores(query, memories) {
-    if (memories.length === 0) return [];
+    if (memories.length === 0) {return [];}
 
     const queryTerms = this.preprocessText(query);
     const documents = memories.map(memory => ({
@@ -125,7 +125,7 @@ class MemoryEngine {
 
   // Preprocess text: tokenize, lowercase, remove stopwords, stem
   preprocessText(text) {
-    if (!text) return [];
+    if (!text) {return [];}
     
     // Tokenize and clean
     const words = text.toLowerCase()
@@ -189,7 +189,7 @@ class MemoryEngine {
       doc.terms.includes(term)
     ).length;
     
-    if (documentsWithTerm === 0) return 0;
+    if (documentsWithTerm === 0) {return 0;}
     
     // IDF = log(total_documents / documents_containing_term)
     return Math.log(documents.length / documentsWithTerm);
@@ -283,7 +283,7 @@ class MemoryEngine {
 
   // Check if content contains valuable information worth saving
   isWorthSaving(content) {
-    if (!content || content.length < 30) return false;
+    if (!content || content.length < 30) {return false;}
     
     // Skip very common/generic responses
     const skipPatterns = [
@@ -310,7 +310,7 @@ class MemoryEngine {
     // Check for valuable content indicators
     const valueIndicators = [
       /\b(how to|steps to|you can|should|need to|important|remember|note that|tip|advice|recommendation|solution|answer|example|tutorial|guide|explanation|because|since|due to|result|therefore|however|although|instead|alternatively|specifically|particularly|especially|mainly|primarily|generally|usually|typically|often|sometimes|always|never|most|best|worst|better|worse|more|less|increase|decrease|improve|reduce|avoid|prevent|cause|effect|impact|influence|benefit|advantage|disadvantage|problem|issue|challenge|difficulty|solution|fix|resolve|address|handle|manage|deal with|approach|method|technique|strategy|process|procedure|system|framework|model|theory|concept|principle|rule|law|fact|truth|reality|evidence|proof|data|information|knowledge|understanding|insight|perspective|viewpoint|opinion|belief|assumption|hypothesis|conclusion|result|outcome|consequence|implication|significance|importance|relevance|value|worth|benefit|advantage|strength|weakness|limitation|constraint|requirement|condition|criteria|standard|measure|metric|indicator|sign|symptom|characteristic|feature|property|attribute|quality|trait|aspect|element|component|part|piece|section|area|field|domain|scope|range|extent|level|degree|amount|quantity|number|size|scale|magnitude|intensity|strength|power|force|energy|speed|rate|frequency|duration|time|period|phase|stage|step|point|moment|instance|case|situation|scenario|context|circumstance|condition|state|status|position|location|place|area|region|zone|space|room|environment|setting|background|history|past|present|future|before|after|during|while|when|where|why|how|what|which|who|whom|whose)/i,
-      /\d+[\.\)]\s/,  // Numbered lists
+      /\d+[.)]\s/,  // Numbered lists
       /•|▪|▫|‣|⁃/,    // Bullet points
       /\b(api|code|function|method|class|variable|database|server|client|framework|library|tool|software|application|program|script|algorithm|data|file|document|website|url|link|email|phone|address|name|company|organization|project|product|service|feature|bug|error|issue|problem|solution|fix|update|version|release|deploy|install|configure|setup|run|execute|build|compile|test|debug|optimize|improve|enhance|upgrade|migrate|backup|restore|import|export|download|upload|save|load|open|close|start|stop|pause|resume|cancel|delete|remove|add|insert|create|generate|produce|make|build|construct|develop|design|plan|organize|manage|control|monitor|track|measure|analyze|evaluate|assess|review|audit|check|verify|validate|confirm|approve|reject|accept|decline|agree|disagree|support|oppose|recommend|suggest|propose|request|require|need|want|prefer|choose|select|pick|decide|determine|conclude|finish|complete|accomplish|achieve|succeed|fail|win|lose|gain|earn|spend|cost|price|value|worth|benefit|profit|loss|risk|danger|threat|opportunity|chance|possibility|probability|likelihood|certainty|uncertainty|doubt|confusion|clarity|understanding|knowledge|information|data|facts|details|specifics|examples|instances|cases|scenarios|situations|conditions|circumstances|requirements|specifications|criteria|standards|guidelines|rules|policies|procedures|processes|methods|techniques|strategies|approaches|solutions|answers|responses|reactions|feedback|comments|suggestions|recommendations|advice|tips|hints|clues|ideas|thoughts|opinions|views|perspectives|beliefs|assumptions|hypotheses|theories|concepts|principles|fundamentals|basics|essentials|key points|main ideas|important information|critical details|significant facts|relevant data|useful tips|practical advice|actionable insights|valuable knowledge|essential information|crucial details|important points|key concepts|main principles|fundamental ideas|basic information|essential knowledge|critical insights|significant findings|important discoveries|valuable lessons|useful techniques|practical methods|effective strategies|proven approaches|successful solutions|recommended practices|best practices|common mistakes|frequent errors|typical problems|usual issues|standard procedures|normal processes|regular methods|routine techniques|everyday strategies|common approaches|typical solutions|standard answers|normal responses|regular reactions|usual feedback|common comments|typical suggestions|standard recommendations|normal advice|regular tips|usual hints|common clues|typical ideas|standard thoughts|normal opinions|regular views|usual perspectives|common beliefs|typical assumptions|standard hypotheses|normal theories|regular concepts|usual principles|common fundamentals|typical basics|standard essentials)/i
     ];
@@ -651,8 +651,8 @@ class MemoryEngine {
       const daysDiff = Math.floor((now - memory.timestamp) / (1000 * 60 * 60 * 24));
       if (daysDiff <= 30) {
         const bucket = daysDiff <= 1 ? 'today' : 
-                      daysDiff <= 7 ? 'this_week' : 
-                      daysDiff <= 30 ? 'this_month' : 'older';
+          daysDiff <= 7 ? 'this_week' : 
+            daysDiff <= 30 ? 'this_month' : 'older';
         analytics.timeDistribution[bucket] = (analytics.timeDistribution[bucket] || 0) + 1;
       }
 

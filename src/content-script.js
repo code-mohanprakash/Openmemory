@@ -22,6 +22,12 @@ class OpenMemoryIntegration {
       this.messageObserver = null;
       this.periodicCheck = null;
       
+      // Notification rate limiting
+      this.notificationQueue = [];
+      this.recentNotifications = new Map();
+      this.maxNotifications = 2;
+      this.notificationCooldown = 3000; // 3 seconds between similar notifications
+      
       console.log('OpenMemory: Initializing on', this.platform);
       this.init();
     } catch (error) {
@@ -123,12 +129,7 @@ class OpenMemoryIntegration {
       
       console.log('OpenMemory: Ready on', this.platform);
 
-      // Show initialization success (subtle)
-      if (this.platform !== 'unknown') {
-        setTimeout(() => {
-          this.showNotification(`🧠 OpenMemory active on ${this.platform}`, 'info', 2000);
-        }, 1000);
-      }
+      // Removed platform activation notification
     } catch (error) {
       console.error('OpenMemory: Initialization failed:', error);
       this.showNotification('OpenMemory initialization failed', 'error');
@@ -142,7 +143,7 @@ class OpenMemoryIntegration {
       // Debounce function to avoid processing the same content multiple times
       let processingTimeout;
       
-      const observer = new MutationObserver((mutations) => {
+      const observer = new MutationObserver((_mutations) => {
         try {
           clearTimeout(processingTimeout);
           processingTimeout = setTimeout(() => {
@@ -378,14 +379,14 @@ class OpenMemoryIntegration {
   }
 
   async processNewContent(content) {
-    if (this.isProcessing) return; // Prevent concurrent processing
+    if (this.isProcessing) {return;} // Prevent concurrent processing
     
     // Extract text content if element provided, otherwise use content directly
     const textContent = typeof content === 'string' ? content : content?.textContent?.trim();
-    if (!textContent || textContent.length < 20) return;
+    if (!textContent || textContent.length < 20) {return;}
 
     // Skip if we already processed this content
-    if (textContent === this.lastProcessedMessage) return;
+    if (textContent === this.lastProcessedMessage) {return;}
     this.lastProcessedMessage = textContent;
 
     console.log('OpenMemory: Processing new content:', textContent.substring(0, 100) + '...');
@@ -414,23 +415,23 @@ class OpenMemoryIntegration {
     // For Zendesk, we want to capture all customer service conversations
     if (this.platform === 'zendesk') {
       // For Zendesk, capture meaningful content (not just "Thanks" or "Hi")
-      if (content.length < 20) return false;
+      if (content.length < 20) {return false;}
       
       // Skip very short responses that are likely just greetings
-      if (content.length < 50 && content.split(' ').length < 5) return false;
+      if (content.length < 50 && content.split(' ').length < 5) {return false;}
       
       // For Zendesk, most content above 50 characters is worth storing
       return content.length > 50;
     }
     
     // AI responses are typically longer and more informative
-    if (content.length < 30) return false;
+    if (content.length < 30) {return false;}
     
     // Skip very short responses that are likely user messages
-    if (content.length < 100 && content.split(' ').length < 10) return false;
+    if (content.length < 100 && content.split(' ').length < 10) {return false;}
     
     // For longer content, it's likely an AI response
-    if (content.length > 200) return true;
+    if (content.length > 200) {return true;}
     
     // Look for characteristics of AI responses
     const aiIndicators = [
@@ -471,28 +472,22 @@ class OpenMemoryIntegration {
     }
 
     // Show progress indicator
-    const progress = this.showMemoryProgress('Processing memory...');
+    const _progress = this.showMemoryProgress('Processing memory...');
 
     try {
       console.log('OpenMemory: Content is worth saving, saving as conversation memory...');
       
+      let memory = null;
       // Save the full response as a conversation memory (will be appended to existing if same topic)
       if (content.length > 50) {
         console.log('OpenMemory: Saving conversation memory');
-        const memory = await window.memoryEngine.saveMemory(content, {
+        memory = await window.memoryEngine.saveMemory(content, {
           type: 'conversation', 
           platform: this.platform,
           conversation_url: window.location.href
         });
 
-        if (memory) {
-          // Show success notification with memory details
-          this.showNotification(
-            `💭 Memory saved: ${memory.category} | ${memory.summary?.substring(0, 50) || content.substring(0, 50)}...`,
-            'memory',
-            4000
-          );
-        }
+        // Memory will be confirmed in the summary below
       }
 
       // Extract and save key facts only if they're substantial
@@ -509,13 +504,20 @@ class OpenMemoryIntegration {
             platform: this.platform,
             conversation_url: window.location.href
           });
-          if (factMemory) savedFacts++;
+          if (factMemory) {savedFacts++;}
         }
       }
 
-      // Show summary notification if facts were saved
-      if (savedFacts > 0) {
-        this.showNotification(`📝 Extracted ${savedFacts} key insights`, 'success', 2000);
+      // Show consolidated summary notification
+      const totalSaved = (memory ? 1 : 0) + savedFacts;
+      if (totalSaved > 0) {
+        if (memory && savedFacts > 0) {
+          this.showNotification(`💭 Saved conversation + ${savedFacts} insights`, 'success', 2000);
+        } else if (memory) {
+          this.showNotification('💭 Conversation saved', 'success', 2000);
+        } else if (savedFacts > 0) {
+          this.showNotification(`📝 Extracted ${savedFacts} key insights`, 'success', 2000);
+        }
       }
 
       // Update memory button if visible
@@ -622,10 +624,7 @@ class OpenMemoryIntegration {
           // Update button text with memory count
           this.updateMemoryButton();
           
-          // Show confirmation notification
-          setTimeout(() => {
-            this.showNotification('✅ OpenMemory button loaded successfully!', 'success', 2000);
-          }, 500);
+          // Removed button loading notification
           
           return true;
         }
@@ -659,7 +658,7 @@ class OpenMemoryIntegration {
     try {
       this.showNotification('🔍 Saving memories...', 'info', 2000);
       this.memoryButton.disabled = true;
-      const originalText = this.memoryButton.innerHTML;
+      // Store original button state
       this.memoryButton.innerHTML = '⏳ Saving...';
       
       let newMemoriesCount = 0;
@@ -732,7 +731,7 @@ class OpenMemoryIntegration {
   }
 
   updateMemoryButton() {
-    if (!this.memoryButton) return;
+    if (!this.memoryButton) {return;}
     
     window.memoryEngine.getMemoryStats().then(stats => {
       this.memoryButton.innerHTML = `🔄 Update Memory (${stats.total})`;
@@ -1046,7 +1045,7 @@ class OpenMemoryIntegration {
 
   async injectMemoriesAndSubmit(inputElement) {
     try {
-      if (!this.pendingMemories) return;
+      if (!this.pendingMemories) {return;}
       
       const { userQuery, memories } = this.pendingMemories;
       
@@ -1094,7 +1093,7 @@ class OpenMemoryIntegration {
   showSmartMemoryPrompt(inputElement, memories, userQuery) {
     // Remove any existing prompt
     const existing = document.querySelector('.openmemory-smart-prompt');
-    if (existing) existing.remove();
+    if (existing) {existing.remove();}
 
     // Create smart prompt overlay
     const prompt = document.createElement('div');
@@ -1135,24 +1134,24 @@ class OpenMemoryIntegration {
       
       <div style="max-height: 120px; overflow-y: auto; margin-bottom: 12px;">
         ${memories.map(memory => {
-          let displayText = '';
-          try {
-            const parsed = JSON.parse(memory.content);
-            if (parsed.user && parsed.ai_output) {
-              displayText = `💬 ${parsed.ai_output.substring(0, 80)}...`;
-            } else {
-              displayText = memory.content.substring(0, 80) + '...';
-            }
-          } catch (e) {
-            displayText = memory.content.substring(0, 80) + '...';
-          }
+    let displayText = '';
+    try {
+      const parsed = JSON.parse(memory.content);
+      if (parsed.user && parsed.ai_output) {
+        displayText = `💬 ${parsed.ai_output.substring(0, 80)}...`;
+      } else {
+        displayText = memory.content.substring(0, 80) + '...';
+      }
+    } catch (e) {
+      displayText = memory.content.substring(0, 80) + '...';
+    }
           
-          return `
+    return `
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; margin-bottom: 6px; font-size: 12px; line-height: 1.4;">
               ${displayText}
             </div>
           `;
-        }).join('')}
+  }).join('')}
       </div>
       
       <div style="display: flex; gap: 8px;">
@@ -1269,7 +1268,7 @@ class OpenMemoryIntegration {
     }).join(' ');
   }
 
-  createEnhancedResponse(userQuery, originalResponse, memoryContext) {
+  createEnhancedResponse(_userQuery, originalResponse, memoryContext) {
     // Create a natural response that incorporates the memory
     const enhancedResponse = `Based on our previous conversations, I can help with that! ${memoryContext}
     
@@ -1299,12 +1298,12 @@ ${originalResponse.includes('don\'t know') || originalResponse.includes('don\'t 
   }
 
   isInputField(element) {
-    if (!element) return false;
+    if (!element) {return false;}
     
     // Check for common input fields
-    if (element.tagName === 'TEXTAREA') return true;
-    if (element.tagName === 'INPUT' && ['text', 'search'].includes(element.type)) return true;
-    if (element.contentEditable === 'true') return true;
+    if (element.tagName === 'TEXTAREA') {return true;}
+    if (element.tagName === 'INPUT' && ['text', 'search'].includes(element.type)) {return true;}
+    if (element.contentEditable === 'true') {return true;}
     
     // Platform-specific checks
     const platformSelectors = {
@@ -1385,7 +1384,7 @@ ${originalResponse.includes('don\'t know') || originalResponse.includes('don\'t 
   showAutoSuggestionNotification(memories, inputElement, userQuery) {
     // Remove any existing auto-suggestion
     const existingSuggestion = document.querySelector('.openmemory-auto-suggestion');
-    if (existingSuggestion) existingSuggestion.remove();
+    if (existingSuggestion) {existingSuggestion.remove();}
     
     // Create auto-suggestion UI
     const suggestion = document.createElement('div');
@@ -1427,7 +1426,7 @@ ${originalResponse.includes('don\'t know') || originalResponse.includes('don\'t 
       </div>
       
       <div class="memory-previews" style="margin-bottom: 16px;">
-        ${memories.map((memory, index) => `
+        ${memories.map((memory, _index) => `
           <div style="background: rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px; margin-bottom: 8px; font-size: 11px; line-height: 1.4;">
             <div style="font-weight: 500; margin-bottom: 4px; color: #e0e7ff;">${memory.category || 'General'} • ${this.formatDate(memory.timestamp)}</div>
             <div style="opacity: 0.9;">${memory.summary || memory.content.substring(0, 100)}${memory.content.length > 100 ? '...' : ''}</div>
@@ -1521,21 +1520,7 @@ Current question: ${userQuery}`;
     }
   }
 
-  setInputValue(element, value) {
-    if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
-      element.value = value;
-      element.dispatchEvent(new Event('input', { bubbles: true }));
-    } else if (element.contentEditable === 'true') {
-      element.textContent = value;
-      element.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-    
-    // Focus and position cursor at end
-    element.focus();
-    if (element.setSelectionRange) {
-      element.setSelectionRange(value.length, value.length);
-    }
-  }
+  // Duplicate method removed - using the one defined earlier
 
   async injectMemories() {
     const input = this.getCurrentInput();
@@ -1729,12 +1714,38 @@ Current question: ${userQuery}`;
   }
 
   showNotification(message, type = 'info', duration = 3000) {
-    // Calculate vertical position based on existing notifications
+    // Check if similar notification was shown recently
+    const notificationKey = `${type}:${message.substring(0, 20)}`;
+    const now = Date.now();
+    
+    if (this.recentNotifications.has(notificationKey)) {
+      const lastShown = this.recentNotifications.get(notificationKey);
+      if (now - lastShown < this.notificationCooldown) {
+        console.log('OpenMemory: Skipping duplicate notification:', message);
+        return null;
+      }
+    }
+    
+    // Limit total number of notifications
     const existingNotifications = document.querySelectorAll('.openmemory-notification');
+    if (existingNotifications.length >= this.maxNotifications) {
+      // Remove oldest notification
+      const oldest = existingNotifications[0];
+      if (oldest) {
+        oldest.remove();
+        this.repositionNotifications();
+      }
+    }
+    
+    // Record this notification
+    this.recentNotifications.set(notificationKey, now);
+    
+    // Calculate vertical position based on existing notifications
+    const remainingNotifications = document.querySelectorAll('.openmemory-notification');
     let topOffset = this.getBaseNotificationTop();
     
     // Stack notifications vertically with 8px spacing
-    existingNotifications.forEach((notif, index) => {
+    remainingNotifications.forEach((notif, _index) => {
       const notifHeight = notif.offsetHeight || 60; // Approximate height
       topOffset += notifHeight + 8; // 8px spacing between notifications
     });
@@ -1800,7 +1811,7 @@ Current question: ${userQuery}`;
     const notifications = document.querySelectorAll('.openmemory-notification');
     let topOffset = this.getBaseNotificationTop();
     
-    notifications.forEach((notif, index) => {
+    notifications.forEach((notif, _index) => {
       notif.style.top = `${topOffset}px`;
       const notifHeight = notif.offsetHeight || 60;
       topOffset += notifHeight + 8; // 8px spacing
@@ -1810,7 +1821,7 @@ Current question: ${userQuery}`;
   // Show memory capture progress
   showMemoryProgress(message) {
     const existing = document.querySelector('.openmemory-progress');
-    if (existing) existing.remove();
+    if (existing) {existing.remove();}
 
     // Calculate position below notifications
     const notifications = document.querySelectorAll('.openmemory-notification');
@@ -1879,9 +1890,9 @@ Current question: ${userQuery}`;
           
           <div class="memories-list">
             ${memories.length === 0 ? 
-              '<div class="no-memories">No memories found</div>' :
-              memories.map((memory, index) => this.createMemoryCard(memory, index)).join('')
-            }
+    '<div class="no-memories">No memories found</div>' :
+    memories.map((memory, index) => this.createMemoryCard(memory, index)).join('')
+}
           </div>
         </div>
       </div>
@@ -1944,15 +1955,15 @@ Current question: ${userQuery}`;
   }
 
   formatDate(timestamp) {
-    if (!timestamp) return 'Unknown';
+    if (!timestamp) {return 'Unknown';}
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now - date;
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays === 0) {return 'Today';}
+    if (diffDays === 1) {return 'Yesterday';}
+    if (diffDays < 7) {return `${diffDays}d ago`;}
     return date.toLocaleDateString();
   }
 
@@ -2171,7 +2182,7 @@ Current question: ${userQuery}`;
 }
 
 // Global message listener setup
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   console.log('OpenMemory: Global message listener received:', message);
   if (message.action === 'inject_memories') {
     if (window.openMemoryIntegration) {
@@ -2231,7 +2242,7 @@ function initializeOpenMemory() {
       // Remove indicator after 3 seconds
       setTimeout(() => {
         const indicator = document.getElementById('openmemory-init-indicator');
-        if (indicator) indicator.remove();
+        if (indicator) {indicator.remove();}
       }, 3000);
     }
     
@@ -2282,7 +2293,7 @@ if (document.readyState === 'loading') {
     initializeOpenMemory();
   } else {
     // Wait for body to be available
-    const observer = new MutationObserver((mutations, obs) => {
+    const observer = new MutationObserver((_mutations, obs) => {
       if (document.body) {
         obs.disconnect();
         initializeOpenMemory();
