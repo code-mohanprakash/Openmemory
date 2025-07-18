@@ -1,0 +1,176 @@
+# LocalBrain Production .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Production Logs
+backend/logs/
+*.log
+logs/
+
+# NLP Models and Data
+backend/models/
+models/
+*.bin
+*.model
+*.pkl
+*.pickle
+
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.development
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Chrome Extension Build Files
+*.crx
+*.pem
+web-ext-artifacts/
+
+# Temporary Files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Backup Files
+*.bak
+*.backup
+backup/
+
+# Cache Files
+.cache/
+cache/
+*.cache
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+
+# Test Coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Production Artifacts
+DEPLOYMENT_SUMMARY.md
+start_production.sh
+localbrain.service
+
+# Extension Development
+*.crx
+*.pem
+web-ext-artifacts/
+
+# System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node.js (if any frontend tools are used)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# LocalBrain Specific
+# Exclude any local configuration files
+local_config.json
+user_settings.json
+
+# Exclude any temporary processing files
+temp_processing/
+processing_cache/
+
+# Exclude any backup memory files
+memory_backup/
+backup_memories/
+
+# Exclude any debug files
+debug_output/
+debug_logs/ 

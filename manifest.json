@@ -1,0 +1,76 @@
+{
+  "manifest_version": 3,
+  "name": "LocalBrain - AI Memory Sync",
+  "version": "1.0.0",
+  "description": "Share memory seamlessly across ChatGPT, Claude, Perplexity, Gemini and more. Local storage, no server needed. (LocalBrain)",
+  "homepage_url": "https://code-mohanprakash.github.io/localbrain-privacy/",
+  
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  
+  "host_permissions": [
+    "https://chat.openai.com/*",
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*",
+    "https://perplexity.ai/*",
+    "https://grok.x.ai/*",
+    "https://you.com/*",
+    "https://*.zendesk.com/*",
+    "https://*.zendeskgov.com/*"
+  ],
+  
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chat.openai.com/*",
+        "https://chatgpt.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*",
+        "https://perplexity.ai/*",
+        "https://grok.x.ai/*",
+        "https://you.com/*",
+        "https://*.zendesk.com/*",
+        "https://*.zendeskgov.com/*"
+      ],
+      "js": [
+        "src/backend-integration.js",
+        "src/memory-engine.js",
+        "src/content-script.js"
+      ],
+      "css": [
+        "src/styles.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "LocalBrain",
+    "default_icon": {
+      "16": "icons/grok.png",
+      "48": "icons/grok.png",
+      "128": "icons/grok.png"
+    }
+  },
+  
+  "icons": {
+    "16": "icons/grok.png",
+    "48": "icons/grok.png",
+    "128": "icons/grok.png"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
